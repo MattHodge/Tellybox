@@ -1,0 +1,551 @@
+/* Tellybox kid app. A little landscape: the sky is the timer, the hill holds the TV controls.
+   No text is needed to use it (KA-2); episode and show tiles carry a small title for adults (KA-10). */
+
+:root {
+  --ink: #1E2A5A;
+  --yolk: #FFC93C;
+  --day: #8FD3FF;
+  --dusk: #FF8A5B;
+  --night: #232B63;
+  --star: #FFF3B0;
+  --hill: #6CCB7A;
+
+  --meadow: #EEF8F0;
+  --paper: #FFFFFF;
+
+  --sky-h: clamp(96px, 24vh, 216px);
+  --gutter: clamp(16px, 4vw, 40px);
+  --radius: 24px;
+  --line: 4px;
+  --tile-min: clamp(140px, 27vw, 240px);
+
+  --btn: 84px;
+  --thumb-w: 132px;
+  --hill-h: calc(124px + env(safe-area-inset-bottom, 0px));
+
+  --slow: 2.4s;
+  --fade: 1.2s;
+  color-scheme: light;
+}
+
+/* Short screens (landscape phones): a slimmer sky and hill. */
+@media (max-height: 520px) {
+  :root {
+    --sky-h: clamp(72px, 22vh, 110px);
+    --btn: 68px;
+    --thumb-w: 104px;
+    --hill-h: calc(96px + env(safe-area-inset-bottom, 0px));
+    --tile-min: 168px;
+    --strip-col: 176px;
+  }
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  background: var(--meadow);
+  color: var(--ink);
+  font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  transition: background-color var(--fade) ease;
+}
+
+[hidden] { display: none !important; }
+
+.app {
+  display: grid;
+  grid-template-rows: var(--sky-h) minmax(0, 1fr);
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* ---------------------------------------------------------------- sky */
+
+.sky {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.sky-layer {
+  position: absolute;
+  inset: 0;
+  transition: opacity var(--fade) ease;
+}
+.sky-day   { background: linear-gradient(180deg, #6CC3FA 0%, var(--day) 55%, #C4EAFF 100%); }
+.sky-dusk  { background: linear-gradient(180deg, #7D82D2 0%, #D98BA6 42%, var(--dusk) 82%, #FFB27A 100%); opacity: 0; }
+.sky-night { background: linear-gradient(180deg, #161C48 0%, var(--night) 55%, #2F3A80 100%); opacity: 0; }
+.is-dusk  .sky-dusk  { opacity: 1; }
+.is-night .sky-night { opacity: 1; }
+
+.sun {
+  --size: calc(var(--sky-h) * .36);
+  position: absolute;
+  left: var(--sun-x, 24%);
+  top: var(--sun-y, 30%);
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  translate: -50% -50%;
+  background: radial-gradient(circle at 36% 34%, #FFE58E 0 18%, var(--yolk) 62%);
+  box-shadow:
+    0 0 0 calc(var(--size) * .13) rgb(255 201 60 / .30),
+    0 0 0 calc(var(--size) * .28) rgb(255 225 140 / .18);
+  transition:
+    left var(--slow) cubic-bezier(.45, .05, .35, 1),
+    top var(--slow) cubic-bezier(.45, .05, .35, 1),
+    box-shadow var(--fade) ease;
+  z-index: 1;
+}
+/* Warmer, redder sun for the last five minutes. */
+.sun::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 34%, #FFC27A 0 16%, #FF7A45 70%);
+  opacity: 0;
+  transition: opacity var(--fade) ease;
+}
+.is-dusk .sun::after,
+.is-night .sun::after { opacity: 1; }
+.is-dusk .sun {
+  box-shadow:
+    0 0 0 calc(var(--size) * .14) rgb(255 122 69 / .32),
+    0 0 0 calc(var(--size) * .32) rgb(255 138 91 / .18);
+}
+.is-unlimited .sun { animation: glow 6s ease-in-out infinite; }
+@keyframes glow {
+  50% {
+    box-shadow:
+      0 0 0 calc(var(--size) * .17) rgb(255 201 60 / .34),
+      0 0 0 calc(var(--size) * .36) rgb(255 225 140 / .20);
+  }
+}
+
+.moon {
+  position: absolute;
+  right: 12%;
+  top: 14%;
+  width: calc(var(--sky-h) * .30);
+  height: calc(var(--sky-h) * .30);
+  fill: var(--star);
+  filter: drop-shadow(0 0 12px rgb(255 243 176 / .45));
+  opacity: 0;
+  translate: 0 30%;
+  transition: opacity var(--fade) ease .6s, translate var(--slow) ease .6s;
+}
+.is-night .moon { opacity: 1; translate: 0 0; }
+
+.stars svg {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: calc(clamp(10px, var(--sky-h) * .09, 18px) * var(--s));
+  fill: var(--star);
+  opacity: 0;
+  transition: opacity var(--fade) ease 1s;
+}
+.is-night .stars svg {
+  opacity: 1;
+  animation: twinkle 3.2s ease-in-out var(--d) infinite;
+}
+@keyframes twinkle {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(.55); opacity: .5; }
+}
+
+.cloud {
+  position: absolute;
+  height: calc(var(--sky-h) * .13);
+  width: calc(var(--sky-h) * .52);
+  border-radius: 999px;
+  background: #fff;
+  opacity: .85;
+  transition: opacity var(--fade) ease, background-color var(--fade) ease;
+  animation: drift 70s linear infinite alternate;
+}
+.cloud::before {
+  content: "";
+  position: absolute;
+  left: 22%;
+  bottom: 35%;
+  width: 46%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: inherit;
+}
+.cloud-a { left: 6%; top: 18%; }
+.cloud-b { left: 62%; top: 40%; scale: .7; animation-duration: 90s; animation-direction: alternate-reverse; }
+.is-dusk .cloud { background: #FFD9C7; opacity: .7; }
+.is-night .cloud { opacity: 0; }
+@keyframes drift { to { transform: translateX(14vw); } }
+
+.far-hills {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 100%;
+  height: 40%;
+  z-index: 2;
+}
+.far-hill-back  { fill: #A8E0B1; transition: fill var(--fade) ease; }
+.far-hill-front { fill: #86D594; transition: fill var(--fade) ease; }
+.is-dusk .far-hill-back  { fill: #B9C99A; }
+.is-dusk .far-hill-front { fill: #93C47F; }
+.is-night .far-hill-back  { fill: #2E3C74; }
+.is-night .far-hill-front { fill: #2B5A63; }
+
+/* -------------------------------------------------------------- content */
+
+.view {
+  position: relative;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 20px var(--gutter) calc(var(--hill-h) + 28px);
+  background: linear-gradient(180deg, #86D594 0, #C9EDD0 14px, var(--meadow) 64px);
+  transition: background-color var(--fade) ease;
+  outline: none;
+}
+.is-dusk .view { background: linear-gradient(180deg, #93C47F 0, #E3E9C8 14px, #FBF1E6 64px); }
+.is-night .view { background: linear-gradient(180deg, #2B5A63 0, #283E68 14px, #262E62 64px); }
+.is-night { background: #262E62; }
+
+.view > * {
+  max-width: 1240px;
+  margin-inline: auto;
+}
+.view > * + * { margin-top: clamp(20px, 3.5vh, 36px); }
+
+.strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--strip-col, clamp(148px, 40vw, 236px));
+  gap: 18px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: var(--gutter);
+  padding: 12px var(--gutter) 14px;
+  margin-inline: calc(-1 * var(--gutter));
+  scrollbar-width: thin;
+  scrollbar-color: rgb(30 42 90 / .25) transparent;
+}
+.strip > * { scroll-snap-align: start; }
+@media (min-width: 1320px) {
+  .strip { margin-inline: 0; padding-inline: 0; scroll-padding-inline: 0; }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--tile-min)), 1fr));
+  gap: clamp(18px, 2.6vw, 28px);
+  padding-top: 8px;
+}
+
+/* ---------------------------------------------------------------- tiles */
+
+.tile {
+  position: relative;
+  display: block;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  border-radius: var(--radius);
+  cursor: pointer;
+  touch-action: manipulation;
+  text-decoration: none;
+  transition: transform .16s ease, opacity var(--fade) ease, filter var(--fade) ease;
+  min-height: 64px;
+}
+
+.media {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius);
+  border: var(--line) solid var(--ink);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--c, #8FD3FF) 38%, #fff);
+  box-shadow: 0 5px 0 rgb(30 42 90 / .16);
+  transition: box-shadow .16s ease, opacity var(--fade) ease, filter var(--fade) ease;
+}
+.media img,
+.media .placeholder {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.media img { opacity: 0; transition: opacity .25s ease; }
+.media.is-loaded img { opacity: 1; }
+
+.tile:active { transform: scale(.96); }
+@media (hover: hover) and (pointer: fine) {
+  .tile:hover { transform: translateY(-4px); }
+  .tile:hover .media { box-shadow: 0 9px 0 rgb(30 42 90 / .14); }
+  .tile:active { transform: scale(.96); }
+}
+
+/* Shows are a little stack of cards: "there's more inside". The card sits behind the
+   artwork only, not the caption below it. */
+.tile-show .stack { position: relative; display: block; isolation: isolate; margin: 0 8px 8px 0; }
+.tile-show .stack::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  translate: 8px 8px;
+  border-radius: var(--radius);
+  border: var(--line) solid var(--ink);
+  background: color-mix(in srgb, var(--c) 70%, #fff);
+  z-index: -1;
+}
+
+.badge {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: clamp(34px, 5vw, 46px);
+  aspect-ratio: 1;
+  pointer-events: none;
+  transition: opacity var(--fade) ease, filter var(--fade) ease;
+}
+.badge-svg { display: block; width: 100%; height: 100%; filter: drop-shadow(0 2px 0 rgb(30 42 90 / .2)); }
+
+.stripe {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 11px;
+  background: var(--ink);
+}
+.stripe > span {
+  display: block;
+  height: 100%;
+  background: var(--yolk);
+  border-radius: 0 6px 6px 0;
+}
+
+/* KA-10: a short title under each episode thumbnail and show artwork, for adults. The
+   picture stays the main element: small, quiet type, two lines at most, and always two
+   lines tall so tiles in a row line up (an empty title keeps its space). */
+.caption {
+  --lh: 1.25;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  min-height: calc(2em * var(--lh));
+  margin-top: 12px;
+  padding-inline: 6px;
+  font: 600 clamp(13px, 12px + .25vw, 15px) / var(--lh) system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  text-align: left;
+  color: rgb(30 42 90 / .8);
+  overflow-wrap: anywhere;
+  transition: color var(--fade) ease;
+}
+.is-dusk .caption { color: rgb(30 42 90 / .82); }
+.tile-show .caption { margin-top: 12px; } /* the same gap as on episode tiles, measured from the stacked card */
+
+/* What's on the TV right now. */
+.tile-ep.is-current .media {
+  box-shadow: 0 0 0 5px var(--yolk), 0 5px 0 5px rgb(30 42 90 / .16);
+}
+
+/* A pick in flight: a gentle breathing squish. */
+.tile.is-pending { animation: pending .7s ease-in-out infinite; }
+@keyframes pending { 50% { transform: scale(.95); } }
+.is-picking .tile-ep:not(.is-pending) { cursor: progress; }
+
+/* Night: tiles dim and go inert (KA-9). The pictures dim, not the whole tile, so the
+   caption can switch to a soft moonlight colour that stays readable. */
+.is-night .strip .tile,
+.is-night .grid .tile { cursor: default; }
+.is-night .tile-show .stack,
+.is-night .tile-ep > :not(.caption) {
+  opacity: .42;
+  filter: saturate(.25) brightness(.85);
+}
+.is-night .caption { color: rgb(255 243 176 / .6); }
+.is-night .strip .tile:hover,
+.is-night .grid .tile:hover { transform: none; }
+
+/* --------------------------------------------------------- show header */
+
+.show-head {
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 3vw, 24px);
+}
+.show-art {
+  width: clamp(116px, 30vw, 208px);
+  flex: none;
+}
+
+.round-btn {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 68px;
+  height: 68px;
+  padding: 0;
+  border-radius: 50%;
+  border: var(--line) solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 5px 0 rgb(30 42 90 / .16);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform .16s ease;
+}
+.round-btn .icon { width: 58%; height: 58%; }
+.round-btn:active { transform: scale(.94); }
+
+/* ------------------------------------------------------------------ hill */
+
+.hill {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--hill-h);
+  pointer-events: none;
+  z-index: 5;
+}
+.hill-shape {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: var(--hill);
+  transition: fill var(--fade) ease;
+}
+.is-dusk .hill-shape { fill: #74BF6E; }
+.is-night .hill-shape { fill: #2F6E58; }
+
+.now-bar {
+  position: absolute;
+  left: 50%;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  translate: -50% 0;
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 3vw, 22px);
+  pointer-events: auto;
+}
+
+.np-thumb .media {
+  width: var(--thumb-w);
+  border-radius: 16px;
+  box-shadow: 0 4px 0 rgb(30 42 90 / .2);
+}
+
+.big-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--btn);
+  height: var(--btn);
+  padding: 0;
+  border-radius: 50%;
+  border: var(--line) solid var(--ink);
+  background: var(--yolk);
+  color: var(--ink);
+  box-shadow: 0 5px 0 var(--ink);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.big-btn:active { transform: translateY(4px) scale(.96); box-shadow: 0 1px 0 var(--ink); }
+.big-icon { display: grid; place-items: center; width: 52%; height: 52%; }
+.big-icon .icon { width: 100%; height: 100%; }
+
+.spinner {
+  position: absolute;
+  inset: -12px;
+  width: calc(100% + 24px);
+  height: calc(100% + 24px);
+  color: #fff;
+  opacity: 0;
+  transition: opacity .2s ease;
+  pointer-events: none;
+}
+.big-btn.is-busy .spinner { opacity: 1; animation: spin 1.1s linear infinite; }
+.big-btn.is-busy .big-icon { opacity: .55; }
+@keyframes spin { to { rotate: 1turn; } }
+
+.np-idle,
+.np-offline {
+  display: grid;
+  place-items: center;
+  width: calc(var(--btn) + 4px);
+  height: calc(var(--btn) + 4px);
+  color: var(--ink);
+}
+.np-idle .icon { width: 100%; height: 100%; opacity: .55; }
+.is-night .np-idle { color: var(--star); }
+.np-offline {
+  border-radius: 50%;
+  background: var(--paper);
+  border: var(--line) solid var(--ink);
+  box-shadow: 0 5px 0 rgb(30 42 90 / .2);
+}
+.np-offline .icon { width: 62%; height: 62%; translate: 2% 0; }
+
+/* ------------------------------------------------------------ focus ring */
+
+.tile:focus-visible,
+.round-btn:focus-visible,
+.big-btn:focus-visible {
+  outline: 4px solid var(--ink);
+  outline-offset: 6px;
+  box-shadow: 0 0 0 6px var(--yolk);
+}
+.tile-show:focus-visible { outline-offset: 12px; }
+.is-night .tile:focus-visible,
+.is-night .round-btn:focus-visible,
+.is-night .big-btn:focus-visible { outline-color: var(--star); }
+.tile:focus:not(:focus-visible),
+.round-btn:focus:not(:focus-visible),
+.big-btn:focus:not(:focus-visible) { outline: none; }
+
+/* ----------------------------------------------------- reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --slow: .01s; --fade: .01s; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    transition-delay: 0s !important;
+  }
+  .is-night .stars svg,
+  .cloud,
+  .is-unlimited .sun,
+  .tile.is-pending { animation: none !important; }
+  .tile.is-pending { transform: scale(.96); }
+  .big-btn.is-busy .spinner { animation: none !important; }
+  .big-btn.is-busy .spinner circle { stroke-dasharray: 10 14; }
+  .tile:hover { transform: none; }
+}

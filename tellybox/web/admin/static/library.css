@@ -1,0 +1,15 @@
+/* Library and show pages (CI-4, CI-6, LM-1..LM-4): a few page-specific tweaks. admin.css has the
+ * shared building blocks; this only adds what's particular to a show's artwork/episode layout. */
+
+.grid a.card { text-decoration: none; color: inherit; display: block; }
+.grid a.card h3 { margin: .5rem 0 .2rem; }
+
+.episode-row { border-bottom: 1px solid var(--line); padding: .6rem 0; }
+.episode-row:last-child { border-bottom: 0; }
+.episode-row details { margin-top: .5rem; }
+.episode-row summary { cursor: pointer; color: var(--muted); font-size: .9rem; }
+
+.step-btn { min-width: 44px; font-size: 1.1rem; }
+
+.frame-preview { display: grid; gap: .5rem; max-width: 320px; margin-top: .5rem; }
+.frame-preview img { width: 100%; border-radius: 8px; background: #E8EAF2; }

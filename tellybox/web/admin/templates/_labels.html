@@ -1,0 +1,28 @@
+{#- Translatable labels for values the code stores as plain words (NF-13). Macros, not
+    top-level variables: an imported template's module is cached, so its variables would be
+    translated once, in the first request's language. Unknown values are shown as they are. -#}
+
+{#- Markup for a placeholder, so a translated sentence can hold a link or bold text without
+    putting HTML in the message id. -#}
+{% macro link(href, text) %}<a href="{{ href }}">{{ text }}</a>{% endmacro %}
+{% macro strong(text) %}<strong>{{ text }}</strong>{% endmacro %}
+
+{% macro job_status(value) -%}
+{{ {"queued": _("queued"), "downloading": _("downloading"), "processing": _("processing"),
+    "ready": _("ready"), "failed": _("failed")}.get(value, value) }}
+{%- endmacro %}
+
+{% macro job_type(value) -%}
+{{ {"download": _("download"), "update_ytdlp": _("Update yt-dlp")}.get(value, value) }}
+{%- endmacro %}
+
+{% macro connection(value) -%}
+{{ {"CONNECTING": _("connecting"), "CONNECTED": _("connected"), "LOST": _("lost"),
+    "FAILED": _("failed"), "DISCONNECTED": _("disconnected")}.get(value, value) }}
+{%- endmacro %}
+
+{#- CastController.state(): now_playing.state is loading, playing, buffering or paused. -#}
+{% macro player_state(value) -%}
+{{ {"loading": _("loading"), "playing": _("playing"), "buffering": _("buffering"),
+    "paused": _("paused")}.get(value, value) }}
+{%- endmacro %}

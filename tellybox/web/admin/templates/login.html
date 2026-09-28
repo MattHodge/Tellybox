@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% set signed_in = false %}
+{% block title %}{{ _("Sign in") }}{% endblock %}
+{% block content %}
+<section class="card narrow">
+  <h1>{{ _("Tellybox admin") }}</h1>
+  <form method="post" action="/admin/login" class="stack">
+    <input type="hidden" name="next" value="{{ next }}">
+    <label>{{ _("Password") }}
+      <input type="password" name="password" autocomplete="current-password" required autofocus>
+    </label>
+    <button class="btn primary">{{ _("Sign in") }}</button>
+  </form>
+</section>
+{% endblock %}

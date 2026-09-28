@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% import "_labels.html" as labels %}
+{% block title %}{{ _("Add") }}{% endblock %}
+{% block content %}
+<section class="card narrow">
+  <h1>{{ _("Add a video or playlist") }}</h1>
+  <form method="post" action="/admin/add/preview" class="stack fetch-form" id="preview-form">
+    <label>{{ _("YouTube URL") }}
+      <input type="url" name="url" required autofocus value="{{ url or '' }}"
+             placeholder="https://www.youtube.com/watch?v=...">
+    </label>
+    <button class="btn primary" id="preview-submit" type="submit">{{ _("Fetch preview") }}</button>
+    <p class="muted fetching" hidden>{{ _("Fetching…") }}</p>
+  </form>
+  {% if already_added %}
+  <p class="flash error" role="alert">
+    {{ _("Already added (source video %(id)s, %(status)s).", id=already_added.source_video_id,
+         status=labels.job_status(already_added.status)) }}
+    {{ _("See %(jobs)s or %(library)s.", jobs=labels.link("/admin/jobs", _("Jobs")),
+         library=labels.link("/admin/library", _("Library"))) }}
+  </p>
+  {% endif %}
+</section>
+
+{% if choose %}
+<section class="card narrow">
+  <h2>{{ _("Video or playlist?") }}</h2>
+  <p>{{ _("This link is a video inside a playlist. What do you want to add?") }}</p>
+  <form method="post" action="/admin/add/preview" class="row fetch-form">
+    <input type="hidden" name="url" value="{{ url }}">
+    <button class="btn primary" name="mode" value="video" type="submit">{{ _("Just this video") }}</button>
+    <button class="btn" name="mode" value="playlist" type="submit">{{ _("Whole playlist") }}</button>
+    <p class="muted fetching" hidden>{{ _("Fetching…") }}</p>
+  </form>
+</section>
+{% endif %}
+
+{% if info %}
+<section class="card">
+  <h2>{{ info.title }}</h2>
+  <div class="row" style="align-items: flex-start; flex-wrap: nowrap;">
+    {% if info.thumbnail_url %}
+    <img class="thumb small" src="{{ info.thumbnail_url }}" referrerpolicy="no-referrer" alt="">
+    {% endif %}
+    <div class="stack">
+      <p class="muted">{{ info.channel_name or _("Unknown channel") }} · {{ info.duration_s | duration }}</p>
+      <p>
+        {% if show_name %}{{ _("Goes to: %(show)s", show=labels.strong(show_name)) }}
+        {% else %}{{ _("Goes to: new show: %(show)s", show=labels.strong(new_show_channel)) }}{% endif %}
+      </p>
+      {% if info.chapters %}
+      <details>
+        <summary>{{ ngettext("%(num)d chapter", "%(num)d chapters", info.chapters | length) }}</summary>
+        <ul>
+          {% for c in info.chapters %}<li>{{ c.start_s | duration }} — {{ c.title }}</li>{% endfor %}
+        </ul>
+      </details>
+      {% endif %}
+    </div>
+  </div>
+  <form method="post" action="/admin/add" class="row">
+    <input type="hidden" name="preview_id" value="{{ preview_id }}">
+    <button class="btn primary" name="action" value="add" type="submit">{{ _("Add") }}</button>
+    <button class="btn" name="action" value="hold" type="submit">{{ _("Add and hold") }}</button>
+  </form>
+</section>
+{% endif %}
+
+{% if playlist %}
+<section class="card playlist-preview">
+  <h2>{{ playlist.title }}</h2>
+  <p class="muted">
+    {% if playlist.channel_name %}{{ _("Playlist by %(channel)s", channel=playlist.channel_name) }}{% else %}{{ _("Playlist") }}{% endif %} ·
+    {% set shown = playlist.entries | length %}
+    {% if playlist.total_count and playlist.total_count > shown %}
+      {{ _("showing the first %(shown)s of %(total)s videos", shown=shown, total=playlist.total_count) }}
+    {% else %}
+      {{ ngettext("%(num)d video", "%(num)d videos", shown) }}
+    {% endif %}
+  </p>
+  {% if playlist.total_count and playlist.total_count > shown %}
+  <p class="muted">{{ _("Add the rest later by adding the playlist again; videos already added are skipped.") }}</p>
+  {% endif %}
+  <p class="muted">{{ _("Each video goes to its own channel's show.") }}</p>
+
+  <form method="post" action="/admin/add/playlist" id="playlist-form">
+    <input type="hidden" name="preview_id" value="{{ preview_id }}">
+    <div class="row select-tools" hidden>
+      <button class="btn small" type="button" data-select="all">{{ _("Select all") }}</button>
+      <button class="btn small" type="button" data-select="none">{{ _("Select none") }}</button>
+    </div>
+    <ul class="pick-list">
+      {% for row in rows %}
+      {% set e = row.entry %}
+      <li{% if row.reason %} class="unavailable"{% endif %}>
+        <label class="pick">
+          <input type="checkbox" name="video" value="{{ e.youtube_id }}"
+                 {% if row.reason %}disabled{% else %}checked{% endif %}>
+          {% if e.thumbnail_url %}
+          <img class="thumb small" src="{{ e.thumbnail_url }}" referrerpolicy="no-referrer" loading="lazy" alt="">
+          {% else %}
+          <span class="thumb small" aria-hidden="true"></span>
+          {% endif %}
+          <span class="pick-text">
+            <span class="pick-title">{{ e.title }}</span>
+            <span class="muted">{{ e.channel_name or _("Unknown channel") }} · {{ e.duration_s | duration }}</span>
+            {% if row.reason %}<span class="badge">{{ row.reason }}</span>{% endif %}
+          </span>
+        </label>
+      </li>
+      {% endfor %}
+    </ul>
+    <div class="pick-footer row">
+      <label class="check"><input type="checkbox" name="hold" value="1" checked> {{ _("Hold for approval") }}</label>
+      <button class="btn primary" type="submit" id="playlist-submit" {% if not selectable %}disabled{% endif %}>
+        {{ ngettext("Add %(num)d video", "Add %(num)d videos", selectable) }}
+      </button>
+    </div>
+  </form>
+</section>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script type="module" src="/admin/static/add.js"></script>
+{% endblock %}

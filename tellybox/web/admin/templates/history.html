@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ _("History") }}{% endblock %}
+{% block content %}
+<h1>{{ _("History") }}</h1>
+<p class="muted">{{ _("The last 21 days.") }}</p>
+
+{% if not has_any %}
+<p class="muted">{{ _("Nothing watched yet.") }}</p>
+{% endif %}
+
+{% for day in days %}
+  {% if day.episodes or day.overrides %}
+  <section class="card">
+    <h2>{{ format_date(day.day) }}</h2>
+
+    {% if day.episodes %}
+    <table class="list">
+      <thead><tr><th>{{ _("Episode") }}</th><th>{{ _("Show") }}</th><th>{{ _("Start") }}</th><th>{{ _("End") }}</th><th>{{ _("Minutes") }}</th><th>{{ _("Ended") }}</th></tr></thead>
+      <tbody>
+        {% for ep in day.episodes %}
+        <tr>
+          <td>{{ ep.title }}</td>
+          <td>{{ ep.show_name or "–" }}</td>
+          <td>{{ ep.started_at.astimezone(tz).strftime("%H:%M") }}</td>
+          <td>{{ ep.ended_at.astimezone(tz).strftime("%H:%M") if ep.ended_at else "–" }}</td>
+          <td>{{ _("%(minutes)s min", minutes=ep.minutes) }}</td>
+          <td>{% if not ep.ended_at %}<span class="badge ok">{{ ep.end_reason_label }}</span>{% else %}{{ ep.end_reason_label }}{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    {% if day.overrides %}
+    <h3>{{ _("Overrides") }}</h3>
+    <ul>
+      {% for o in day.overrides %}
+      <li>
+        {{ o.created_at.astimezone(tz).strftime("%H:%M") }} &mdash; {{ override_labels.get(o.kind, o.kind) }}
+        {%- if o.kind == "extra_minutes" and o.value is not none %} ({{ _("+%(minutes)s min", minutes=o.value) }}){% elif o.value is not none %} ({{ _("on") if o.value else _("off") }}){% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </section>
+  {% endif %}
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,138 @@
+/* Tellybox admin: calm, utilitarian, phone-first. Ink and yolk come from the kid app.
+ *
+ * Building blocks for page templates:
+ *   .card            white panel; h2 inside is the panel title
+ *   .stack           vertical form layout (labels wrap their inputs)
+ *   .row             horizontal wrap of controls/buttons with a gap
+ *   .btn             button or link styled as a button; .primary (yolk), .danger, .small
+ *   button.link      a button that looks like a link
+ *   form.inline      a form that sits inline (one-button actions)
+ *   table.list       full-width rows; collapses nicely on phones
+ *   .muted .badge .badge.warn .badge.bad .badge.ok   secondary text and status pills
+ *   .thumb           16:9 thumbnail image (width set by context); .thumb.small
+ *   .progress > span progress bar, set width via style="width: 40%"
+ *   .flash .flash.error   one-off message (rendered by base.html)
+ *   .grid            responsive card grid
+ */
+:root {
+  --ink: #1E2A5A;
+  --yolk: #FFC93C;
+  --bg: #F4F5F8;
+  --panel: #FFFFFF;
+  --line: #DADDE6;
+  --muted: #5F6680;
+  --bad: #B3261E;
+  --ok: #1B7F4C;
+  --warn: #8A5A00;
+  --radius: 10px;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+/* `hidden` must win over component display rules (e.g. phone table cells are display: block). */
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+a { color: var(--ink); }
+h1 { font-size: 1.4rem; margin: 0 0 .75rem; }
+h2 { font-size: 1.1rem; margin: 0 0 .6rem; }
+h3 { font-size: 1rem; margin: 0 0 .4rem; }
+p { margin: .4rem 0; }
+
+header.top {
+  background: var(--ink); color: #fff; padding: .5rem 1rem;
+  display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 1rem;
+  position: sticky; top: 0; z-index: 10;
+}
+header.top .brand { color: var(--yolk); font-weight: 700; text-decoration: none; font-size: 1.1rem; }
+header.top nav { display: flex; flex-wrap: wrap; gap: .1rem .25rem; align-items: center; }
+header.top nav a, header.top nav button.link {
+  color: #fff; text-decoration: none; padding: .35rem .55rem; border-radius: 6px; font-size: .95rem;
+}
+header.top nav a[aria-current="page"] { background: var(--yolk); color: var(--ink); font-weight: 600; }
+header.top nav button.link { opacity: .8; }
+
+main { max-width: 960px; margin: 0 auto; padding: 1rem; display: grid; gap: 1rem; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem; min-width: 0; }
+.card.narrow { max-width: 420px; margin: 2rem auto; width: 100%; }
+.grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+
+.stack { display: grid; gap: .75rem; }
+.row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+form.inline { display: inline; margin: 0; }
+/* NF-13: a text field next to a long (translated) button keeps room for its placeholder; the button wraps. */
+.row > input[type=text] { min-width: min(100%, 12rem); }
+
+label { display: grid; gap: .25rem; font-weight: 600; font-size: .95rem; }
+label.check { display: flex; gap: .5rem; align-items: center; font-weight: 400; }
+input[type=text], input[type=url], input[type=password], input[type=number], input[type=time], input[type=file], select, textarea {
+  font: inherit; color: inherit; width: 100%; padding: .55rem .65rem;
+  border: 1px solid var(--line); border-radius: 8px; background: #fff; min-height: 44px;
+}
+input[type=checkbox] { width: 1.3rem; height: 1.3rem; accent-color: var(--ink); }
+input:focus-visible, select:focus-visible, textarea:focus-visible, .btn:focus-visible, button:focus-visible, a:focus-visible {
+  outline: 3px solid var(--yolk); outline-offset: 2px;
+}
+
+.btn, button:not(.link) {
+  font: inherit; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: .45rem .95rem; border-radius: 8px; border: 1px solid var(--ink);
+  background: #fff; color: var(--ink); text-decoration: none; gap: .35rem;
+}
+.btn.primary, button.primary { background: var(--yolk); border-color: var(--yolk); }
+.btn.danger, button.danger { background: #fff; color: var(--bad); border-color: var(--bad); }
+.btn.small, button.small { min-height: 36px; padding: .25rem .6rem; font-size: .9rem; }
+.btn:disabled, button:disabled { opacity: .45; cursor: default; }
+button.link { background: none; border: 0; padding: 0; font: inherit; cursor: pointer; text-decoration: underline; color: inherit; }
+
+table.list { width: 100%; border-collapse: collapse; }
+table.list th, table.list td { text-align: left; padding: .5rem .4rem; border-bottom: 1px solid var(--line); vertical-align: middle; }
+table.list th { font-size: .85rem; color: var(--muted); font-weight: 600; }
+@media (max-width: 600px) {
+  table.list thead { display: none; }
+  table.list tr { display: block; padding: .5rem 0; border-bottom: 1px solid var(--line); }
+  table.list td { display: block; border: 0; padding: .15rem 0; }
+}
+
+.muted { color: var(--muted); font-size: .9rem; }
+.badge { display: inline-block; padding: .05rem .5rem; border-radius: 999px; font-size: .8rem; font-weight: 600;
+  background: #E8EAF2; color: var(--ink); }
+.badge.ok { background: #DDF3E6; color: var(--ok); }
+.badge.warn { background: #FFF1CC; color: var(--warn); }
+.badge.bad { background: #FBE3E1; color: var(--bad); }
+
+.thumb { aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px; background: #E8EAF2; width: 100%; display: block; }
+.thumb.small { width: 96px; flex: none; }
+
+.progress { height: 8px; background: #E8EAF2; border-radius: 999px; overflow: hidden; }
+.progress > span { display: block; height: 100%; background: var(--yolk); }
+
+.flash { margin: 0; padding: .65rem .9rem; border-radius: 8px; background: #DDF3E6; color: var(--ok); font-weight: 600; }
+.flash.error { background: #FBE3E1; color: var(--bad); }
+.big { font-size: 1.8rem; font-weight: 700; }
+
+/* Add page, playlist preview (CI-7): a long tick list that stays usable on a phone. Each row is one
+ * big label (tap anywhere to tick); the hold option and submit button stick to the bottom. */
+.select-tools[hidden] { display: none; }
+.pick-list { list-style: none; margin: .5rem 0 0; padding: 0; }
+.pick-list li { border-bottom: 1px solid var(--line); }
+.pick-list li:last-child { border-bottom: 0; }
+label.pick { display: flex; gap: .6rem; align-items: center; padding: .45rem 0; font-weight: 400; cursor: pointer; }
+label.pick input { flex: none; }
+.pick-text { display: grid; gap: .1rem; min-width: 0; }
+.pick-title { font-weight: 600; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pick-text .badge { justify-self: start; }
+.pick-list li.unavailable label.pick { cursor: default; }
+.pick-list li.unavailable .thumb, .pick-list li.unavailable .pick-title { opacity: .45; }
+.pick-footer { position: sticky; bottom: 0; background: var(--panel); border-top: 1px solid var(--line);
+  padding: .6rem 0; justify-content: space-between; }
+
+/* Library, held downloads grouped by playlist (CI-7). */
+.held-group { border-top: 1px solid var(--line); padding-top: .75rem; margin-top: .75rem; }
+.held-group:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
+.held-group-head { justify-content: space-between; }
+.held-group-head h3 { margin: 0; overflow-wrap: anywhere; }

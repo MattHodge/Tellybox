@@ -1,0 +1,385 @@
+"""Library admin pages (CI-4, CI-6, LM-1..LM-4): shows, episodes, artwork/thumbnails, held downloads.
+
+Per-show settings in v1 are autoplay only; the splitting profile in LM-4 is v2 (see
+docs/plans/step5-admin.md). Show reordering isn't requested by the PRD, so shows are
+shown in their existing sort_order (set once, by ingest); only episodes get up/down.
+"""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse, Response
+
+from tellybox import library
+from tellybox.i18n import _, ngettext
+from tellybox.images import MAX_UPLOAD_BYTES, ImageError, clean_upload, grab_frame, save_episode_thumbnail, save_show_artwork
+from tellybox.web.admin.common import AdminContext, render, see_other
+
+PLAYLIST_ID = re.compile(r"[A-Za-z0-9_-]{1,64}")  # YouTube playlist ids (CI-7)
+IMAGE_CACHE = {"Cache-Control": "no-cache"}  # revalidate (304 via ETag): replacements show at once
+FRAME_CACHE = {"Cache-Control": "no-store"}
+
+
+def _media_path(media_dir: Path, rel: str | None) -> Path | None:
+    """Resolved path of `rel` inside media_dir, or None if missing or outside it (like kid.py's image())."""
+    if not rel:
+        return None
+    root = media_dir.resolve()
+    candidate = (root / rel).resolve()
+    if not candidate.is_relative_to(root) or not candidate.is_file():
+        return None
+    return candidate
+
+
+def _parse_time(raw: str | None) -> float | None:
+    """Seconds from a plain number or a [[HH:]MM:]SS(.s) string; None if blank or unparsable."""
+    raw = (raw or "").strip()
+    if not raw:
+        return None
+    try:
+        if ":" in raw:
+            parts = raw.split(":")
+            if len(parts) > 3:
+                return None
+            secs = 0.0
+            for part in parts:
+                secs = secs * 60 + float(part)
+        else:
+            secs = float(raw)
+    except ValueError:
+        return None
+    return secs if secs >= 0 else None
+
+
+def _episode_image_candidates(conn, episode_id: int) -> list[str] | None:
+    """Episode thumbnail, then its source video's thumbnail; None if the episode doesn't exist."""
+    row = conn.execute(
+        """SELECT e.thumbnail_path, sv.thumbnail_path AS source_thumb
+           FROM episode e LEFT JOIN source_video sv ON sv.id = e.source_video_id
+           WHERE e.id = ?""",
+        (episode_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    return [p for p in (row["thumbnail_path"], row["source_thumb"]) if p]
+
+
+def _show_image_candidates(conn, show_id: int) -> list[str] | None:
+    """Show artwork, then every episode's thumbnail in order; None if the show doesn't exist."""
+    row = conn.execute("SELECT artwork_path FROM show WHERE id = ?", (show_id,)).fetchone()
+    if row is None:
+        return None
+    thumbs = [r[0] for r in conn.execute(
+        "SELECT thumbnail_path FROM episode WHERE show_id = ? ORDER BY sort_order, id", (show_id,)
+    )]
+    return [p for p in [row["artwork_path"], *thumbs] if p]
+
+
+def group_held(held: list[library.HeldDownload]) -> tuple[list[library.HeldDownload], list[dict]]:
+    """Split held downloads into (ungrouped, playlist groups) for the library page (CI-7).
+
+    A group is {playlist_id, title, items, ready}, in order of first appearance; `ready` counts
+    what "Publish all ready" would publish.
+    """
+    ungrouped: list[library.HeldDownload] = []
+    groups: dict[str, dict] = {}
+    for item in held:
+        if not item.playlist_id:
+            ungrouped.append(item)
+            continue
+        group = groups.setdefault(item.playlist_id, {
+            "playlist_id": item.playlist_id, "title": item.playlist_title or _("Playlist"), "items": [], "ready": 0,
+        })
+        group["items"].append(item)
+        if item.status == "ready" and item.episode_id:
+            group["ready"] += 1
+    return ungrouped, list(groups.values())
+
+
+def create_router(ctx: AdminContext) -> APIRouter:
+    router = APIRouter()
+    conn = ctx.conn
+    media_dir = ctx.config.media_dir
+
+    def library_context(**extra) -> dict:
+        shows, total_bytes = library.list_shows_for_admin(conn, media_dir)
+        held = library.list_held_downloads(conn)
+        held_single, held_groups = group_held(held)
+        return {"nav": "library", "shows": shows, "held": held, "held_single": held_single,
+                "held_groups": held_groups, "total_bytes": total_bytes, **extra}
+
+    def show_context(show_id: int, request: Request | None = None, **extra) -> dict | None:
+        show = library.get_show(conn, show_id)
+        if show is None:
+            return None
+        episodes = library.list_episodes(conn, show_id, include_hidden=True)
+        other_shows = [s for s in library.list_shows(conn) if s.id != show_id]
+        context = {
+            "nav": "library", "show": show, "episodes": episodes, "other_shows": other_shows,
+            "art_preview": None, "thumb_preview": None, **extra,
+        }
+        q = request.query_params if request is not None else {}
+        episode_ids = {e.id for e in episodes}
+        art_secs, art_ep = _parse_time(q.get("art_t")), q.get("art_ep")
+        if art_secs is not None and art_ep and art_ep.isdigit() and int(art_ep) in episode_ids:
+            context["art_preview"] = {"episode_id": int(art_ep), "t": art_secs}
+        thumb_secs, thumb_ep = _parse_time(q.get("thumb_t")), q.get("thumb_ep")
+        if thumb_secs is not None and thumb_ep and thumb_ep.isdigit() and int(thumb_ep) in episode_ids:
+            context["thumb_preview"] = {"episode_id": int(thumb_ep), "t": thumb_secs}
+        return context
+
+    def show_or_404(request: Request, show_id: int, **extra) -> dict:
+        data = show_context(show_id, request, **extra)
+        if data is None:
+            raise HTTPException(404)
+        return data
+
+    def episode_or_404(episode_id: int) -> library.Episode:
+        ep = library.get_episode(conn, episode_id)
+        if ep is None:
+            raise HTTPException(404)
+        return ep
+
+    # --------------------------------------------------------------------- library page
+
+    @router.get("/admin/library")
+    def library_page(request: Request) -> Response:
+        return render(request, "library.html", **library_context())
+
+    @router.post("/admin/shows")
+    def add_show(request: Request, name: str = Form(...)) -> Response:
+        if not name.strip():
+            return render(request, "library.html", 422, error=_("Show name must not be empty."), **library_context())
+        library.create_show(conn, name.strip(), now=ctx.clock.now())
+        return see_other("/admin/library", flash=_("Show created."))
+
+    @router.post("/admin/shows/merge")
+    def merge_shows_route(
+        request: Request, into_id: int = Form(...), from_id: int = Form(...), confirm: str = Form("")
+    ) -> Response:
+        if confirm != "yes":
+            return render(request, "library.html", 422, error=_("Confirm the merge first."), **library_context())
+        try:
+            library.merge_shows(conn, into_id, from_id, now=ctx.clock.now())
+        except ValueError:
+            return render(request, "library.html", 422, error=_("Cannot merge a show into itself."), **library_context())
+        except KeyError:
+            raise HTTPException(404) from None
+        return see_other("/admin/library", flash=_("Shows merged."))
+
+    @router.post("/admin/held/{source_id}/publish")
+    def publish_held_route(source_id: int) -> Response:
+        try:
+            library.publish_held(conn, source_id, now=ctx.clock.now())
+        except KeyError:
+            raise HTTPException(404) from None
+        return see_other("/admin/library", flash=_("Published to the kid app."))
+
+    @router.post("/admin/held/playlist/{playlist_id}/publish")
+    def publish_held_playlist_route(playlist_id: str) -> Response:
+        if not PLAYLIST_ID.fullmatch(playlist_id):
+            raise HTTPException(404)
+        try:
+            count = library.publish_held_playlist(conn, playlist_id, now=ctx.clock.now())
+        except KeyError:
+            raise HTTPException(404) from None
+        if count == 0:
+            return see_other("/admin/library", flash=_("Nothing in that playlist is ready yet."))
+        flash = ngettext("Published %(num)d video to the kid app.", "Published %(num)d videos to the kid app.", count)
+        return see_other("/admin/library", flash=flash % {"num": count})
+
+    # --------------------------------------------------------------------- show page
+
+    @router.get("/admin/shows/{show_id}")
+    def show_page(request: Request, show_id: int) -> Response:
+        return render(request, "show.html", **show_or_404(request, show_id))
+
+    @router.post("/admin/shows/{show_id}/rename")
+    def rename_show_route(request: Request, show_id: int, name: str = Form(...)) -> Response:
+        try:
+            library.rename_show(conn, show_id, name)
+        except ValueError:
+            return render(request, "show.html", 422, error=_("Show name must not be empty."),
+                         **show_or_404(request, show_id))
+        except KeyError:
+            raise HTTPException(404) from None
+        return see_other(f"/admin/shows/{show_id}", flash=_("Renamed."))
+
+    @router.post("/admin/shows/{show_id}/autoplay")
+    def set_autoplay_route(show_id: int, autoplay: bool = Form(...)) -> Response:
+        try:
+            library.set_show_autoplay(conn, show_id, autoplay)
+        except KeyError:
+            raise HTTPException(404) from None
+        return see_other(f"/admin/shows/{show_id}", flash=_("Saved."))
+
+    @router.post("/admin/shows/{show_id}/hidden")
+    def set_show_hidden_route(show_id: int, hidden: bool = Form(...)) -> Response:
+        try:
+            library.set_show_hidden(conn, show_id, hidden)
+        except KeyError:
+            raise HTTPException(404) from None
+        return see_other(f"/admin/shows/{show_id}", flash=_("Hidden.") if hidden else _("Unhidden."))
+
+    @router.post("/admin/shows/{show_id}/delete")
+    def delete_show_route(request: Request, show_id: int, confirm_name: str = Form("")) -> Response:
+        show = library.get_show(conn, show_id)
+        if show is None:
+            raise HTTPException(404)
+        if confirm_name.strip() != show.name:
+            return render(request, "show.html", 422, error=_("Type the show's name exactly to delete it."),
+                         **show_or_404(request, show_id))
+        library.delete_show(conn, media_dir, show_id)
+        return see_other("/admin/library", flash=_("Show deleted."))
+
+    # --------------------------------------------------------------------- show artwork
+
+    @router.post("/admin/shows/{show_id}/artwork/upload")
+    def upload_show_artwork(request: Request, show_id: int, file: UploadFile = File(...)) -> Response:
+        if library.get_show(conn, show_id) is None:
+            raise HTTPException(404)
+        try:
+            image = clean_upload(file.file.read(MAX_UPLOAD_BYTES + 1))
+        except ImageError as e:
+            return render(request, "show.html", 422, error=str(e), **show_or_404(request, show_id))
+        rel = save_show_artwork(media_dir, show_id, image)
+        library.set_show_artwork(conn, media_dir, show_id, rel)
+        return see_other(f"/admin/shows/{show_id}", flash=_("Artwork updated."))
+
+    @router.post("/admin/shows/{show_id}/artwork/frame")
+    def use_show_artwork_frame(
+        request: Request, show_id: int, episode_id: int = Form(...), t: float = Form(...)
+    ) -> Response:
+        if library.get_show(conn, show_id) is None:
+            raise HTTPException(404)
+        episode = library.get_episode(conn, episode_id)
+        if episode is None or episode.show_id != show_id:
+            return render(request, "show.html", 422, error=_("Pick an episode of this show."),
+                         **show_or_404(request, show_id))
+        path = _media_path(media_dir, episode.file_path)
+        if path is None:
+            return render(request, "show.html", 422, error=_("That episode's video file is missing."),
+                         **show_or_404(request, show_id))
+        try:
+            image = grab_frame(path, t)
+        except ImageError as e:
+            return render(request, "show.html", 422, error=str(e), **show_or_404(request, show_id))
+        rel = save_show_artwork(media_dir, show_id, image)
+        library.set_show_artwork(conn, media_dir, show_id, rel)
+        return see_other(f"/admin/shows/{show_id}", flash=_("Artwork updated."))
+
+    # --------------------------------------------------------------------- episodes
+
+    @router.post("/admin/episodes/{episode_id}/rename")
+    def rename_episode_route(request: Request, episode_id: int, title: str = Form(...)) -> Response:
+        episode = episode_or_404(episode_id)
+        try:
+            library.rename_episode(conn, episode_id, title)
+        except ValueError:
+            return render(request, "show.html", 422, error=_("Episode title must not be empty."),
+                         **show_or_404(request, episode.show_id))
+        return see_other(f"/admin/shows/{episode.show_id}", flash=_("Renamed."))
+
+    @router.post("/admin/episodes/{episode_id}/hidden")
+    def set_episode_hidden_route(episode_id: int, hidden: bool = Form(...)) -> Response:
+        episode = episode_or_404(episode_id)
+        library.set_episode_hidden(conn, episode_id, hidden)
+        return see_other(f"/admin/shows/{episode.show_id}", flash=_("Hidden.") if hidden else _("Unhidden."))
+
+    @router.post("/admin/episodes/{episode_id}/move")
+    def move_episode_route(request: Request, episode_id: int, to_show_id: int = Form(...)) -> Response:
+        episode = episode_or_404(episode_id)
+        try:
+            library.move_episode(conn, episode_id, to_show_id)
+        except KeyError:
+            return render(request, "show.html", 422, error=_("Unknown target show."),
+                         **show_or_404(request, episode.show_id))
+        return see_other(f"/admin/shows/{to_show_id}", flash=_("Episode moved."))
+
+    @router.post("/admin/episodes/{episode_id}/move-step")
+    def move_episode_step_route(episode_id: int, direction: str = Form(...)) -> Response:
+        episode = episode_or_404(episode_id)
+        if direction not in ("up", "down"):
+            raise HTTPException(422, "direction must be 'up' or 'down'")
+        library.move_episode_step(conn, episode_id, direction)
+        return see_other(f"/admin/shows/{episode.show_id}")
+
+    @router.post("/admin/episodes/{episode_id}/delete")
+    def delete_episode_route(request: Request, episode_id: int, confirm: str = Form("")) -> Response:
+        episode = episode_or_404(episode_id)
+        if confirm.strip().lower() != "delete":
+            return render(request, "show.html", 422, error=_('Type "delete" to confirm.'),
+                         **show_or_404(request, episode.show_id))
+        library.delete_episode(conn, media_dir, episode_id)
+        return see_other(f"/admin/shows/{episode.show_id}", flash=_("Episode deleted."))
+
+    # --------------------------------------------------------------------- episode thumbnails / frame picking
+
+    @router.get("/admin/episodes/{episode_id}/frame.jpg")
+    def episode_frame(episode_id: int, t: float = 0.0) -> Response:
+        episode = library.get_episode(conn, episode_id)
+        if episode is None:
+            raise HTTPException(404)
+        path = _media_path(media_dir, episode.file_path)
+        if path is None:
+            raise HTTPException(404)
+        try:
+            image = grab_frame(path, t)
+        except ImageError as e:
+            raise HTTPException(422, str(e)) from e
+        return Response(content=image, media_type="image/jpeg", headers=FRAME_CACHE)
+
+    @router.post("/admin/episodes/{episode_id}/thumbnail/upload")
+    def upload_episode_thumbnail(request: Request, episode_id: int, file: UploadFile = File(...)) -> Response:
+        episode = episode_or_404(episode_id)
+        try:
+            image = clean_upload(file.file.read(MAX_UPLOAD_BYTES + 1))
+        except ImageError as e:
+            return render(request, "show.html", 422, error=str(e), **show_or_404(request, episode.show_id))
+        rel = save_episode_thumbnail(media_dir, episode_id, image)
+        library.set_episode_thumbnail(conn, media_dir, episode_id, rel)
+        return see_other(f"/admin/shows/{episode.show_id}", flash=_("Thumbnail updated."))
+
+    @router.post("/admin/episodes/{episode_id}/thumbnail/frame")
+    def use_episode_thumbnail_frame(request: Request, episode_id: int, t: float = Form(...)) -> Response:
+        episode = episode_or_404(episode_id)
+        path = _media_path(media_dir, episode.file_path)
+        if path is None:
+            return render(request, "show.html", 422, error=_("This episode's video file is missing."),
+                         **show_or_404(request, episode.show_id))
+        try:
+            image = grab_frame(path, t)
+        except ImageError as e:
+            return render(request, "show.html", 422, error=str(e), **show_or_404(request, episode.show_id))
+        rel = save_episode_thumbnail(media_dir, episode_id, image)
+        library.set_episode_thumbnail(conn, media_dir, episode_id, rel)
+        return see_other(f"/admin/shows/{episode.show_id}", flash=_("Thumbnail updated."))
+
+    # --------------------------------------------------------------------- images (also used by dashboard/history)
+
+    @router.get("/admin/img/show/{show_id}.jpg")
+    def show_image(show_id: int) -> Response:
+        candidates = _show_image_candidates(conn, show_id)
+        if candidates is None:
+            raise HTTPException(404)
+        for rel in candidates:
+            path = _media_path(media_dir, rel)
+            if path is not None:
+                return FileResponse(path, headers=IMAGE_CACHE)
+        raise HTTPException(404)
+
+    @router.get("/admin/img/episode/{episode_id}.jpg")
+    def episode_image(episode_id: int) -> Response:
+        candidates = _episode_image_candidates(conn, episode_id)
+        if candidates is None:
+            raise HTTPException(404)
+        for rel in candidates:
+            path = _media_path(media_dir, rel)
+            if path is not None:
+                return FileResponse(path, headers=IMAGE_CACHE)
+        raise HTTPException(404)
+
+    return router

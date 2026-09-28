@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% import "_labels.html" as labels %}
+{% block title %}{{ _("Now") }}{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="/admin/static/dashboard.css">
+{% endblock %}
+{% block content %}
+<h1>{{ _("What's on the TV") }}</h1>
+
+<section class="card" id="now-playing">
+  <p class="muted">
+    Chromecast:
+    <span id="connection">{{ _("unreachable") if unreachable else (labels.connection(connection) if connection else _("unknown")) }}</span>
+    {% if device %}<span id="device-name"> &mdash; {{ device.name }}</span>{% endif %}
+  </p>
+  {% if unreachable %}<p class="badge bad">{{ _("Cast service unreachable") }}</p>{% endif %}
+  {% if timer and timer.action == "finish_then_stop" %}
+    <p class="badge warn">{{ _("Time's up — finishing this episode") }}</p>
+  {% elif time_up and not unreachable %}
+    <p class="badge warn">{{ _("Time's up") }}</p>
+  {% endif %}
+  <div id="now-playing-content">
+    {% if now_playing %}
+      <div class="row" style="align-items:flex-start">
+        <img class="thumb small" src="/admin/img/episode/{{ now_playing.episode_id }}.jpg" alt="">
+        <div>
+          <h2>{{ now_playing.title }}</h2>
+          {% if now_playing.show_name %}<p class="muted">{{ now_playing.show_name }}</p>{% endif %}
+          <p><span class="badge">{{ labels.player_state(now_playing.state) }}</span>
+             {{ now_playing.position_s | duration }} / {{ now_playing.duration_s | duration }}</p>
+        </div>
+      </div>
+      <form method="post" action="/admin/stop" class="inline"><button class="btn danger">{{ _("Stop") }}</button></form>
+    {% else %}
+      <p class="muted">{{ _("Nothing is playing.") }}</p>
+    {% endif %}
+  </div>
+</section>
+
+<script type="application/json" id="profiles-data">{{ profiles | tojson }}</script>
+
+{% for p in profiles %}
+<section class="card" id="profile-{{ p.id }}">
+  <h2>{{ p.name }}</h2>
+  <p class="big used">
+    {{ _("%(time)s used", time=p.used_s | minutes) }}{% if p.remaining_s is not none %} &middot; {{ _("%(time)s left", time=p.remaining_s | minutes) }}{% endif %}
+  </p>
+  <p>
+    <span class="badge ok unlimited-badge{% if not p.unlimited %} hidden{% endif %}">{{ _("unlimited today") }}</span>
+    <span class="badge bad blocked-badge{% if not p.blocked %} hidden{% endif %}">{{ _("blocked") }}</span>
+  </p>
+  <div class="row">
+    <form method="post" action="/admin/overrides" class="inline">
+      <input type="hidden" name="profile_id" value="{{ p.id }}">
+      <input type="hidden" name="kind" value="extra_minutes">
+      <input type="hidden" name="value" value="15">
+      <button class="btn small">{{ _("+%(minutes)s min", minutes=15) }}</button>
+    </form>
+    <form method="post" action="/admin/overrides" class="inline">
+      <input type="hidden" name="profile_id" value="{{ p.id }}">
+      <input type="hidden" name="kind" value="extra_minutes">
+      <input type="hidden" name="value" value="30">
+      <button class="btn small">{{ _("+%(minutes)s min", minutes=30) }}</button>
+    </form>
+    <form method="post" action="/admin/overrides" class="inline">
+      <input type="hidden" name="profile_id" value="{{ p.id }}">
+      <input type="hidden" name="kind" value="unlimited">
+      <input type="hidden" name="value" value="{{ 0 if p.unlimited else 1 }}">
+      <button class="btn small">{{ _("Turn off unlimited") if p.unlimited else _("Unlimited today") }}</button>
+    </form>
+    <form method="post" action="/admin/overrides" class="inline">
+      <input type="hidden" name="profile_id" value="{{ p.id }}">
+      <input type="hidden" name="kind" value="block">
+      <input type="hidden" name="value" value="{{ 0 if p.blocked else 1 }}">
+      <button class="btn small danger">{{ _("Unblock") if p.blocked else _("Block today") }}</button>
+    </form>
+    <form method="post" action="/admin/overrides" class="inline">
+      <input type="hidden" name="profile_id" value="{{ p.id }}">
+      <input type="hidden" name="kind" value="stop_now">
+      <button class="btn small danger">{{ _("Stop now") }}</button>
+    </form>
+  </div>
+</section>
+{% endfor %}
+
+<section class="card">
+  <h2>{{ _("Downloads & jobs") }}</h2>
+  <p id="jobs-failed" class="badge bad{% if not jobs.failed %} hidden{% endif %}">
+    {{ ngettext("%(num)d failed job", "%(num)d failed jobs", jobs.failed | length) }}
+  </p>
+  <ul id="jobs-active">
+    {% for j in jobs.active %}
+      <li>{{ labels.job_type(j.type) }} #{{ j.target_id }} &mdash; {{ labels.job_status(j.status) }}{% if j.progress is not none %} ({{ (j.progress * 100) | round | int }}%){% endif %}</li>
+    {% else %}
+      <li class="muted">{{ _("Nothing downloading.") }}</li>
+    {% endfor %}
+  </ul>
+  <p><a class="btn small" href="/admin/jobs">{{ _("See all jobs") }}</a></p>
+</section>
+
+<section class="card">
+  <h2>{{ _("System") }}</h2>
+  <p class="muted">Tellybox {{ version }}</p>
+  <p class="muted">yt-dlp: <span id="ytdlp-version">{{ ytdlp_version or _("unknown") }}</span></p>
+  <p class="muted" id="disk-usage">
+    {{ _("Media on disk: %(size)s", size=disk.media_bytes | bytes) }}{% if disk.free_bytes is not none %} &middot; {{ _("Free space: %(size)s", size=disk.free_bytes | bytes) }}{% endif %}
+  </p>
+</section>
+{% endblock %}
+{% block scripts %}
+<script type="module" src="/admin/static/dashboard.js"></script>
+{% endblock %}

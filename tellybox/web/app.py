@@ -1,0 +1,128 @@
+"""FastAPI application for the `web` service.
+
+Serves the signed media route the Chromecast fetches episodes from (NF-3), the kid
+app (static shell + /api/kid, docs/kid-api.md), the admin pages (/admin) and a health check.
+"""
+
+from __future__ import annotations
+
+import logging
+import sqlite3
+from contextlib import asynccontextmanager
+from functools import partial
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+
+from tellybox import db, library
+from tellybox.clock import Clock, SystemClock
+from tellybox.config import Config
+from tellybox.media_urls import verify
+from tellybox.ytdlp import YtDlp
+from tellybox.web import kid
+from tellybox.web.admin import mount_admin
+from tellybox.web.admin.common import AdminContext
+from tellybox.web.cast_client import CastClient
+from tellybox.web.hub import KidHub
+from tellybox.web.locale import LocaleMiddleware
+
+log = logging.getLogger(__name__)
+
+STATIC_DIR = Path(__file__).parent / "static"
+
+
+def resolve_media_file(media_dir: Path, file_path: str) -> Path | None:
+    """Absolute path of an episode file, or None if missing or outside the media dir."""
+    root = media_dir.resolve()
+    candidate = (root / file_path).resolve()
+    if not candidate.is_relative_to(root) or not candidate.is_file():
+        return None
+    return candidate
+
+
+def create_app(
+    config: Config,
+    conn: sqlite3.Connection | None = None,
+    clock: Clock | None = None,
+    cast=None,
+    *,
+    static_dir: Path | None = None,
+    ytdlp=None,
+) -> FastAPI:
+    """`cast` is a CastClient-like object (tests pass a fake); by default one for the configured cast service.
+    `ytdlp` is a YtDlp-like object for admin previews; by default the updatable install in the data dir.
+    """
+    if conn is None:
+        db.open_db(config.db_path).close()  # migrate once
+        conn = db.PerThreadConnection(config.db_path)  # handlers run concurrently in a thread pool
+    clock = clock or SystemClock()
+    owns_cast = cast is None
+    cast = cast if cast is not None else CastClient.from_config(config)
+    static_dir = static_dir or STATIC_DIR
+    ytdlp = ytdlp if ytdlp is not None else YtDlp(config.data_dir / "tools" / "yt-dlp")
+    hub = KidHub(cast, partial(kid.kid_state, conn))
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        hub.start()  # KA-7: relay the cast service's live state to kid pages
+        try:
+            yield
+        finally:
+            await hub.stop()
+            if owns_cast:
+                await cast.aclose()
+
+    app = FastAPI(title="Tellybox", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
+    app.state.hub = hub
+    # A reverse proxy such as nginx on the same host may serve Tellybox over HTTPS. Trust
+    # its X-Forwarded-For/-Proto, and only from 127.0.0.1: the login throttle then sees each
+    # device's own address, and devices talking to the port directly can't spoof one.
+    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["127.0.0.1"])
+    app.add_middleware(LocaleMiddleware)  # NF-13: the browser's language, per request
+
+    @app.get("/healthz")
+    def healthz() -> dict:
+        return {"ok": True, "version": config.version}
+
+    # NF-3: the Chromecast can't authenticate, so the URL itself is the credential.
+    # FileResponse handles Range (206) requests, which the Chromecast uses when seeking.
+    @app.api_route("/media/{episode_id}/{expires_at}/{sig}.mp4", methods=["GET", "HEAD"])
+    def media(episode_id: int, expires_at: int, sig: str) -> FileResponse:
+        if not verify(config.secret, episode_id, expires_at, sig, clock.now()):
+            raise HTTPException(status_code=404)
+        episode = library.get_episode(conn, episode_id)
+        if episode is None:
+            raise HTTPException(status_code=404)
+        path = resolve_media_file(config.media_dir, episode.file_path)
+        if path is None:
+            log.warning("media file unavailable episode_id=%s file_path=%r", episode_id, episode.file_path)
+            raise HTTPException(status_code=404)
+        # Hidden episodes are still served: the controller decides what plays.
+        return FileResponse(path, media_type="video/mp4")
+
+    # Kid app (KA-1..KA-9); no login (NF-1).
+    app.include_router(kid.create_router(config, conn, cast, hub, resolve_media_file))
+
+    def static_file(name: str, **kwargs) -> FileResponse:
+        path = static_dir / name
+        if not path.is_file():
+            log.error("kid app file missing: %s (frontend not built/installed?)", path)
+            raise HTTPException(status_code=404)
+        return FileResponse(path, **kwargs)
+
+    @app.get("/")
+    async def index() -> FileResponse:
+        return static_file("index.html", headers={"Cache-Control": "no-cache"})
+
+    @app.get("/manifest.webmanifest")
+    async def manifest() -> FileResponse:
+        return static_file("manifest.webmanifest", media_type="application/manifest+json")
+
+    # Admin pages (AD-1..AD-5); nothing in the kid app links here.
+    mount_admin(app, AdminContext(config=config, conn=conn, clock=clock, cast=cast, ytdlp=ytdlp))
+
+    app.mount("/static", StaticFiles(directory=static_dir, check_dir=False), name="static")
+    return app

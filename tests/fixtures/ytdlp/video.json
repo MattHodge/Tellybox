@@ -1,0 +1,18 @@
+{
+  "id": "abc123XYZ_-",
+  "title": "Tractor Tom - Compilation",
+  "webpage_url": "https://www.youtube.com/watch?v=abc123XYZ_-",
+  "channel_id": "UCtractor",
+  "channel": "Tractor Tom Official",
+  "uploader": "tractortom",
+  "duration": 1234.5,
+  "thumbnail": "https://i.ytimg.com/vi/abc123XYZ_-/maxresdefault.jpg",
+  "is_live": false,
+  "live_status": "not_live",
+  "chapters": [
+    {"start_time": 0.0, "end_time": 600.0, "title": "Episode 1"},
+    {"start_time": 600.0, "end_time": 1234.5, "title": "Episode 2"}
+  ],
+  "format_id": "136+140",
+  "requested_formats": [{"format_id": "136"}, {"format_id": "140"}]
+}

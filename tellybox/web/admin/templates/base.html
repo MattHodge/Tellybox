@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="{{ current_locale() }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>{% block title %}{{ _("Admin") }}{% endblock %} · Tellybox</title>
+  <link rel="stylesheet" href="/admin/static/admin.css">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  {% if signed_in is not defined or signed_in %}
+  <header class="top">
+    <a class="brand" href="/admin">Tellybox</a>
+    <nav>
+      {% for key, href, label in [
+        ("dashboard", "/admin", _("Now")), ("add", "/admin/add", _("Add")), ("jobs", "/admin/jobs", _("Jobs")),
+        ("library", "/admin/library", _("Library")), ("settings", "/admin/settings", _("Settings")),
+        ("history", "/admin/history", _("History"))] %}
+        <a href="{{ href }}"{% if nav == key %} aria-current="page"{% endif %}>{{ label }}</a>
+      {% endfor %}
+      <form method="post" action="/admin/logout" class="inline"><button class="link">{{ _("Sign out") }}</button></form>
+    </nav>
+  </header>
+  {% endif %}
+  <main>
+    {% if flash %}<p class="flash" role="status">{{ flash }}</p>{% endif %}
+    {% if error %}<p class="flash error" role="alert">{{ error }}</p>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+  <script type="application/json" id="i18n">{{ js_catalog() | tojson }}</script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Settings") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Settings") }}</h1>
+
+<form method="post" action="/admin/settings" class="stack">
+  {% for p in profiles %}
+  <section class="card">
+    <h2>{{ p.name }}</h2>
+    <div class="stack">
+      <label>{{ _("Daily allowance (minutes)") }}
+        <input type="number" name="profile_{{ p.id }}_allowance_min" min="1" max="1440"
+               value="{{ values['profile_' ~ p.id ~ '_allowance_min'] }}">
+      </label>
+      {% if errors.get('profile_' ~ p.id ~ '_allowance_min') %}
+        <p class="flash error">{{ errors['profile_' ~ p.id ~ '_allowance_min'] }}</p>
+      {% endif %}
+
+      <label>{{ _("Counting mode") }}
+        <select name="profile_{{ p.id }}_counting_mode">
+          <option value="ignore_pauses" {% if values['profile_' ~ p.id ~ '_counting_mode'] == 'ignore_pauses' %}selected{% endif %}>
+            {{ _("Count playing time only") }}
+          </option>
+          <option value="wall_clock" {% if values['profile_' ~ p.id ~ '_counting_mode'] == 'wall_clock' %}selected{% endif %}>
+            {{ _("Count clock time") }}
+          </option>
+        </select>
+      </label>
+      {% if errors.get('profile_' ~ p.id ~ '_counting_mode') %}
+        <p class="flash error">{{ errors['profile_' ~ p.id ~ '_counting_mode'] }}</p>
+      {% endif %}
+
+      <label>{{ _("Maximum session length (minutes)") }}
+        <input type="number" name="profile_{{ p.id }}_max_session_min" min="1" max="1440"
+               value="{{ values['profile_' ~ p.id ~ '_max_session_min'] }}">
+      </label>
+      {% if errors.get('profile_' ~ p.id ~ '_max_session_min') %}
+        <p class="flash error">{{ errors['profile_' ~ p.id ~ '_max_session_min'] }}</p>
+      {% endif %}
+    </div>
+  </section>
+  {% endfor %}
+
+  <section class="card">
+    <h2>{{ _("Household") }}</h2>
+    <div class="stack">
+      <label>{{ _("Reset time (local, HH:MM)") }}
+        <input type="text" name="reset_time" inputmode="numeric" placeholder="04:00" value="{{ values.reset_time }}">
+      </label>
+      {% if errors.get('reset_time') %}<p class="flash error">{{ errors.reset_time }}</p>{% endif %}
+
+      <label>{{ _("Grace cap (minutes, 0–60)") }}
+        <input type="number" name="grace_cap_min" min="0" max="60" value="{{ values.grace_cap_min }}">
+      </label>
+      {% if errors.get('grace_cap_min') %}<p class="flash error">{{ errors.grace_cap_min }}</p>{% endif %}
+
+      <label>{{ _("Session break (minutes, 1–240)") }}
+        <input type="number" name="session_break_min" min="1" max="240" value="{{ values.session_break_min }}">
+      </label>
+      {% if errors.get('session_break_min') %}<p class="flash error">{{ errors.session_break_min }}</p>{% endif %}
+    </div>
+  </section>
+
+  <div class="row">
+    <button class="btn primary" type="submit">{{ _("Save") }}</button>
+  </div>
+</form>
+
+<section class="card">
+  <h2>Chromecast</h2>
+  {% if known_devices %}
+  <table class="list">
+    <thead><tr><th>{{ _("Device") }}</th><th>{{ _("Address") }}</th><th></th></tr></thead>
+    <tbody>
+      {% for d in known_devices %}
+      <tr>
+        <td>{{ d.name or d.uuid }}{% if d.uuid == selected_uuid %} <span class="badge ok">{{ _("selected") }}</span>{% endif %}</td>
+        <td class="muted">{{ d.host }}{% if d.model %} &middot; {{ d.model }}{% endif %}</td>
+        <td>
+          {% if d.uuid != selected_uuid %}
+          <form method="post" action="/admin/settings/devices/select" class="inline">
+            <input type="hidden" name="uuid" value="{{ d.uuid }}">
+            <button class="btn small" type="submit">{{ _("Use this one") }}</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">{{ _("No Chromecasts known yet.") }}</p>
+  {% endif %}
+  <form method="post" action="/admin/settings/devices/search" class="inline">
+    <button class="btn" type="submit">{{ _("Search") }}</button>
+  </form>
+</section>
+{% endblock %}

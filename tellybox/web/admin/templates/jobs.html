@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% import "_labels.html" as labels %}
+{% block title %}{{ _("Jobs") }}{% endblock %}
+{% block content %}
+<section class="card">
+  <div class="row" style="justify-content: space-between;">
+    <h1>{{ _("Jobs") }}</h1>
+    <form method="post" action="/admin/jobs/update-ytdlp" class="inline">
+      <button class="btn small">{{ _("Update yt-dlp") }}</button>
+    </form>
+  </div>
+  <p class="muted">
+    yt-dlp {{ ytdlp_version or _("version unknown") }}{% if update_pending %} · {{ _("an update is already queued") }}{% endif %}
+  </p>
+
+  <table class="list" data-live="jobs">
+    <thead>
+      <tr><th>{{ _("Job") }}</th><th>{{ _("Status") }}</th><th>{{ _("Progress") }}</th><th>{{ _("Attempts") }}</th><th>{{ _("Error") }}</th><th>{{ _("Updated") }}</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr data-job-id="{{ row.job.id }}">
+        <td>{{ row.title or labels.job_type(row.job.type.value) }}</td>
+        <td data-field="status"><span class="badge{% if row.badge %} {{ row.badge }}{% endif %}">{{ labels.job_status(row.job.status.value) }}</span></td>
+        <td data-field="progress"><div class="progress"><span style="width: {{ ((row.job.progress or 0) * 100) | round | int }}%"></span></div></td>
+        <td data-field="attempts">{{ row.job.attempts }} / {{ row.job.max_attempts }}</td>
+        <td data-field="error" class="muted">{{ row.job.error or "" }}</td>
+        <td class="muted">{{ row.job.updated_at.astimezone(tz).strftime("%Y-%m-%d %H:%M") }}</td>
+        <td data-field="retry"{% if row.job.status.value != "failed" %} hidden{% endif %}>
+          <form method="post" action="/admin/jobs/{{ row.job.id }}/retry" class="inline">
+            <button class="btn small">{{ _("Retry") }}</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="muted">{{ _("No jobs yet.") }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
+{% block scripts %}
+<script type="module" src="/admin/static/jobs.js"></script>
+{% endblock %}

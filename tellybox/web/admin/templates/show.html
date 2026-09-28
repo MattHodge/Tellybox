@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}{{ show.name }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="/admin/static/library.css">{% endblock %}
+{% block content %}
+<p><a href="/admin/library">&larr; {{ _("Library") }}</a></p>
+<h1>{{ show.name }}</h1>
+
+<div class="card">
+  <h2>{{ _("Show") }}</h2>
+  <form method="post" action="/admin/shows/{{ show.id }}/rename" class="row">
+    <input type="text" name="name" value="{{ show.name }}" required style="flex:1">
+    <button class="btn small" type="submit">{{ _("Rename") }}</button>
+  </form>
+  <div class="row">
+    <form method="post" action="/admin/shows/{{ show.id }}/autoplay" class="inline">
+      <input type="hidden" name="autoplay" value="{{ '0' if show.autoplay else '1' }}">
+      <button class="btn small" type="submit">
+        {{ _("Autoplay on (tap to turn off)") if show.autoplay else _("Autoplay off (tap to turn on)") }}
+      </button>
+    </form>
+    <form method="post" action="/admin/shows/{{ show.id }}/hidden" class="inline">
+      <input type="hidden" name="hidden" value="{{ '0' if show.hidden else '1' }}">
+      <button class="btn small" type="submit">{{ _("Unhide show") if show.hidden else _("Hide show") }}</button>
+    </form>
+  </div>
+  {% if show.hidden %}<p><span class="badge warn">{{ _("Hidden from the kid app") }}</span></p>{% endif %}
+  <form method="post" action="/admin/shows/{{ show.id }}/delete" class="row">
+    <input type="text" name="confirm_name" placeholder="{{ _("Type the show's name to delete it") | forceescape }}" required style="flex:1">
+    <button class="btn small danger" type="submit">{{ _("Delete show and its files") }}</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>{{ _("Artwork") }}</h2>
+  <div class="row">
+    <img class="thumb small" src="/admin/img/show/{{ show.id }}.jpg" alt="">
+    <form method="post" action="/admin/shows/{{ show.id }}/artwork/upload" enctype="multipart/form-data" class="row">
+      <input type="file" name="file" accept="image/jpeg,image/png,image/webp" required>
+      <button class="btn small" type="submit">{{ _("Upload") }}</button>
+    </form>
+  </div>
+  {% if episodes %}
+  <form method="get" action="/admin/shows/{{ show.id }}" class="row" data-frame-picker>
+    <label>{{ _("Frame from") }}
+      <select name="art_ep" data-frame-episode>
+        {% for ep in episodes %}
+        <option value="{{ ep.id }}" {% if art_preview and art_preview.episode_id == ep.id %}selected{% endif %}>{{ ep.title }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>{{ _("At") }}
+      <input type="text" name="art_t" placeholder="{{ _("mm:ss or seconds") | forceescape }}" data-frame-time
+             value="{{ request.query_params.get('art_t', '') }}">
+    </label>
+    <button class="btn small" type="submit">{{ _("Preview frame") }}</button>
+  </form>
+  {% if art_preview %}
+  <div class="frame-preview">
+    <img class="thumb" src="/admin/episodes/{{ art_preview.episode_id }}/frame.jpg?t={{ art_preview.t }}"
+        alt="{{ _("Frame preview") | forceescape }}" data-frame-preview
+        data-frame-url-template="/admin/episodes/{ep}/frame.jpg?t={t}">
+    <form method="post" action="/admin/shows/{{ show.id }}/artwork/frame">
+      <input type="hidden" name="episode_id" value="{{ art_preview.episode_id }}">
+      <input type="hidden" name="t" value="{{ art_preview.t }}">
+      <button class="btn small primary" type="submit">{{ _("Use this frame") }}</button>
+    </form>
+  </div>
+  {% endif %}
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>{{ _("Episodes") }}</h2>
+  {% if not episodes %}
+  <p class="muted">{{ _("No episodes in this show.") }}</p>
+  {% endif %}
+  {% for ep in episodes %}
+  <div class="episode-row">
+    <div class="row" style="justify-content:space-between">
+      <div class="row">
+        <img class="thumb small" src="/admin/img/episode/{{ ep.id }}.jpg" alt="">
+        <div>
+          <strong>{{ ep.title }}</strong> {% if ep.hidden %}<span class="badge warn">{{ _("Hidden") }}</span>{% endif %}
+          <p class="muted">{{ ep.duration_s | duration }}</p>
+        </div>
+      </div>
+      <div class="row">
+        <form method="post" action="/admin/episodes/{{ ep.id }}/move-step" class="inline">
+          <input type="hidden" name="direction" value="up">
+          <button class="btn small step-btn" type="submit" aria-label="{{ _("Move up") | forceescape }}" {% if loop.first %}disabled{% endif %}>&uarr;</button>
+        </form>
+        <form method="post" action="/admin/episodes/{{ ep.id }}/move-step" class="inline">
+          <input type="hidden" name="direction" value="down">
+          <button class="btn small step-btn" type="submit" aria-label="{{ _("Move down") | forceescape }}" {% if loop.last %}disabled{% endif %}>&darr;</button>
+        </form>
+      </div>
+    </div>
+
+    <details>
+      <summary>{{ _("Edit episode") }}</summary>
+      <div class="stack">
+        <form method="post" action="/admin/episodes/{{ ep.id }}/rename" class="row">
+          <input type="text" name="title" value="{{ ep.title }}" required style="flex:1">
+          <button class="btn small" type="submit">{{ _("Rename") }}</button>
+        </form>
+
+        <div class="row">
+          <form method="post" action="/admin/episodes/{{ ep.id }}/hidden" class="inline">
+            <input type="hidden" name="hidden" value="{{ '0' if ep.hidden else '1' }}">
+            <button class="btn small" type="submit">{{ _("Unhide") if ep.hidden else _("Hide") }}</button>
+          </form>
+          {% if other_shows %}
+          <form method="post" action="/admin/episodes/{{ ep.id }}/move" class="row">
+            <select name="to_show_id">
+              {% for s in other_shows %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+            </select>
+            <button class="btn small" type="submit">{{ _("Move to show") }}</button>
+          </form>
+          {% endif %}
+        </div>
+
+        <form method="post" action="/admin/episodes/{{ ep.id }}/thumbnail/upload" enctype="multipart/form-data" class="row">
+          <input type="file" name="file" accept="image/jpeg,image/png,image/webp" required>
+          <button class="btn small" type="submit">{{ _("Upload thumbnail") }}</button>
+        </form>
+
+        <form method="get" action="/admin/shows/{{ show.id }}" class="row" data-frame-picker>
+          <input type="hidden" name="thumb_ep" value="{{ ep.id }}" data-frame-episode>
+          <label>{{ _("Frame at") }}
+            <input type="text" name="thumb_t" placeholder="{{ _("mm:ss or seconds") | forceescape }}" data-frame-time
+                   value="{{ request.query_params.get('thumb_t', '') if thumb_preview and thumb_preview.episode_id == ep.id else '' }}">
+          </label>
+          <button class="btn small" type="submit">{{ _("Preview frame") }}</button>
+        </form>
+        {% if thumb_preview and thumb_preview.episode_id == ep.id %}
+        <div class="frame-preview">
+          <img class="thumb" src="/admin/episodes/{{ ep.id }}/frame.jpg?t={{ thumb_preview.t }}"
+              alt="{{ _("Frame preview") | forceescape }}" data-frame-preview
+              data-frame-url-template="/admin/episodes/{{ ep.id }}/frame.jpg?t={t}">
+          <form method="post" action="/admin/episodes/{{ ep.id }}/thumbnail/frame">
+            <input type="hidden" name="t" value="{{ thumb_preview.t }}">
+            <button class="btn small primary" type="submit">{{ _("Use this frame") }}</button>
+          </form>
+        </div>
+        {% endif %}
+
+        <form method="post" action="/admin/episodes/{{ ep.id }}/delete" class="row">
+          <input type="text" name="confirm" placeholder="{{ _('Type "%(word)s" to confirm', word="delete") | forceescape }}" required>
+          <button class="btn small danger" type="submit">{{ _("Delete episode and its files") }}</button>
+        </form>
+      </div>
+    </details>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script type="module" src="/admin/static/library.js"></script>
+{% endblock %}

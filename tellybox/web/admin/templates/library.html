@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% import "_labels.html" as labels %}
+{% block title %}{{ _("Library") }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="/admin/static/library.css">{% endblock %}
+{% block content %}
+<h1>{{ _("Library") }}</h1>
+
+<div class="card">
+  <h2>{{ _("Shows") }}</h2>
+  <p class="muted">{{ _("Total disk use: %(size)s", size=total_bytes | bytes) }}</p>
+  {% if shows %}
+  <div class="grid">
+    {% for item in shows %}
+    <a class="card" href="/admin/shows/{{ item.show.id }}" style="text-decoration:none">
+      <img class="thumb" src="/admin/img/show/{{ item.show.id }}.jpg" alt="">
+      <h3>{{ item.show.name }}</h3>
+      <p class="muted">
+        {{ ngettext("%(num)d episode", "%(num)d episodes", item.episode_count) }}
+        {% if item.hidden_episode_count %}· {{ _("%(count)s hidden", count=item.hidden_episode_count) }}{% endif %}
+        · {{ item.disk_bytes | bytes }}
+      </p>
+      <p>
+        {% if item.show.hidden %}<span class="badge warn">{{ _("Hidden") }}</span>{% endif %}
+        {% if item.show.autoplay %}<span class="badge ok">{{ _("Autoplay") }}</span>{% else %}<span class="badge">{{ _("No autoplay") }}</span>{% endif %}
+      </p>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted">{{ _("No shows yet. Add a video first.") }}</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>{{ _("New show") }}</h2>
+  <form method="post" action="/admin/shows" class="row">
+    <label style="flex:1">{{ _("Name") }}
+      <input type="text" name="name" placeholder="{{ _("Show name") | forceescape }}" required>
+    </label>
+    <button class="btn primary" type="submit">{{ _("Create") }}</button>
+  </form>
+</div>
+
+{% if shows | length > 1 %}
+<div class="card">
+  <h2>{{ _("Merge shows") }}</h2>
+  <p class="muted">{{ _('Every episode and source video of "%(source)s" moves to the end of "%(target)s", and "%(source)s" is deleted. This cannot be undone.', source=_("From"), target=_("Into")) }}</p>
+  <form method="post" action="/admin/shows/merge" class="stack">
+    <div class="row">
+      <label style="flex:1">{{ _("Into") }}
+        <select name="into_id" required>
+          {% for item in shows %}<option value="{{ item.show.id }}">{{ item.show.name }}</option>{% endfor %}
+        </select>
+      </label>
+      <label style="flex:1">{{ _("From") }}
+        <select name="from_id" required>
+          {% for item in shows %}<option value="{{ item.show.id }}">{{ item.show.name }}</option>{% endfor %}
+        </select>
+      </label>
+    </div>
+    <label class="check">
+      <input type="checkbox" name="confirm" value="yes" required>
+      {{ _('I understand "%(source)s" will be deleted after merging', source=_("From")) }}
+    </label>
+    <button class="btn danger" type="submit" style="justify-self:start">{{ _("Merge") }}</button>
+  </form>
+</div>
+{% endif %}
+
+{% macro held_table(items) %}
+  <table class="list">
+    <thead><tr><th>{{ _("Title") }}</th><th>{{ _("Status") }}</th><th></th></tr></thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td>{{ item.title }}</td>
+        <td>
+          {% if item.status == "ready" %}<span class="badge ok">{{ labels.job_status("ready") }}</span>
+          {% elif item.status == "failed" %}<span class="badge bad">{{ labels.job_status("failed") }}{% if item.error %}: {{ item.error }}{% endif %}</span>
+          {% else %}<span class="badge">{{ labels.job_status(item.status) }}</span>{% endif %}
+        </td>
+        <td>
+          <form method="post" action="/admin/held/{{ item.source_id }}/publish" class="inline">
+            <button class="btn small primary" type="submit" {% if not item.episode_id %}disabled{% endif %}>{{ _("Publish") }}</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endmacro %}
+
+<div class="card">
+  <h2>{{ _("Held downloads") }}</h2>
+  {% if held %}
+  {% for group in held_groups %}
+  <section class="held-group">
+    <div class="row held-group-head">
+      <div>
+        <h3>{{ group.title }}</h3>
+        <p class="muted">{{ _("Playlist") }} · {{ _("%(ready)s of %(total)s ready", ready=group.ready, total=group["items"] | length) }}</p>
+      </div>
+      <form method="post" action="/admin/held/playlist/{{ group.playlist_id | urlencode }}/publish" class="inline">
+        <button class="btn primary" type="submit" {% if not group.ready %}disabled{% endif %}>{{ _("Publish all ready") }}</button>
+      </form>
+    </div>
+    <details{% if group["items"] | length <= 10 %} open{% endif %}>
+      <summary class="muted">{{ ngettext("%(num)d video", "%(num)d videos", group["items"] | length) }}</summary>
+      {{ held_table(group["items"]) }}
+    </details>
+  </section>
+  {% endfor %}
+  {% if held_single %}
+  <section class="held-group">
+    {% if held_groups %}<h3>{{ _("Single videos") }}</h3>{% endif %}
+    {{ held_table(held_single) }}
+  </section>
+  {% endif %}
+  {% else %}
+  <p class="muted">{{ _("Nothing held.") }}</p>
+  {% endif %}
+</div>
+{% endblock %}

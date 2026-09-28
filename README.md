@@ -1,0 +1,173 @@
+# Tellybox
+
+**A TV remote for kids who can't read yet, with only the videos you approved and a daily time limit that switches itself off.**
+
+![The kid app on a tablet: a sunny sky above a "continue watching" row and one tile per show](docs/images/kid-tablet.png)
+
+Casting YouTube to the TV for young kids goes wrong in predictable ways. There are ads, and there are recommendations and autoplay into videos you never picked. There is no time limit that actually holds. YouTube Kids can't be locked down while casting.
+
+Tellybox is a small self-hosted app that replaces all of that:
+
+- **You pick the videos.** Add a YouTube video or a whole playlist from the admin page. Tellybox downloads it to your home server, and nothing appears for the kids until you approve it.
+- **Kids pick without reading.** They get big thumbnails and show artwork on any phone, tablet or laptop. One tap starts the episode on the TV.
+- **The TV only plays your files.** Tellybox casts plain MP4 files from your server to a Chromecast. The YouTube app is never involved, so there are no ads, no recommendations and no "up next" you didn't choose.
+- **The day's time runs out gently.** The sky in the kid app is the timer: the sun sinks as the allowance runs down, and it's night when time is up. The current episode gets to finish, then the TV stops. You can add time, give an unlimited day, or stop the TV from your phone, wherever you are.
+- **It stays at home.** It runs in Docker on your own server and is reachable only on your network (and your Tailscale tailnet). There are no accounts, no cloud and no telemetry.
+
+## What the kids see
+
+<table>
+  <tr>
+    <td width="25%"><img src="docs/images/kid-home.png" alt="Home: continue watching and show tiles, sunny sky"></td>
+    <td width="25%"><img src="docs/images/kid-show.png" alt="A show's episode grid"></td>
+    <td width="25%"><img src="docs/images/kid-dusk.png" alt="Dusk: the last five minutes of the day's allowance"></td>
+    <td width="25%"><img src="docs/images/kid-night.png" alt="Night: time is up and the tiles are dimmed"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Home</b><br>Continue watching, then one tile per show</td>
+    <td align="center"><b>A show</b><br>Episodes in order; the one on TV is ringed</td>
+    <td align="center"><b>Dusk</b><br>The last five minutes of the day</td>
+    <td align="center"><b>Night</b><br>Time's up; tiles rest until tomorrow</td>
+  </tr>
+</table>
+
+- **Nothing to read.** Everything works from thumbnails, show artwork and icons. Each episode and show also has a small title under its picture. That's for the grown-ups: when a kid explains which one they want, you can find it quickly.
+- **One tap to the TV.** Tapping an episode plays it on the TV and replaces whatever was on. The bar at the bottom shows what's playing and has one pause/resume button. There's no seeking, no volume and no skipping to fight over.
+- **Continue watching.** Tellybox remembers where each episode stopped and resumes there. The next episode of a show plays automatically, and you can turn that off per show.
+- **Every screen stays in sync.** A pause on the tablet shows up on the phone within a second. Tellybox installs as a home-screen app.
+
+## What you see
+
+<table>
+  <tr>
+    <td width="33%"><img src="docs/images/admin-dashboard-phone.png" alt="Dashboard on a phone: now playing, time used and left, override buttons, jobs"></td>
+    <td width="33%"><img src="docs/images/admin-add-playlist-phone.png" alt="Adding a playlist: a checkbox per video and Hold for approval"></td>
+    <td width="33%"><img src="docs/images/admin-held-desktop.png" alt="Held downloads grouped per playlist with Publish all ready"><br><br><img src="docs/images/admin-history-desktop.png" alt="Viewing history per day"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Dashboard</b><br>What's on, time left, overrides</td>
+    <td align="center"><b>Add a playlist</b><br>Tick the videos, hold for approval</td>
+    <td align="center"><b>Approve and review</b><br>Held downloads, viewing history</td>
+  </tr>
+</table>
+
+The admin pages are designed for a phone first and sit behind a password. They speak English, Dutch or German, whichever the browser prefers, so each parent gets their own language without a setting.
+
+- **Dashboard:** what's on the TV right now and how much time is used and left. It has buttons for **+15 min**, **+30 min**, **Unlimited today**, **Block today** and **Stop now**, plus the download queue.
+- **Add a video or playlist:**
+  - Paste a YouTube link to see a preview (title, channel, duration, thumbnail) before anything downloads.
+  - A playlist lists its videos, up to 200, with a checkbox each. Videos you already have, private ones and ones not out yet are greyed out.
+  - Every selected video becomes its own download job.
+- **Hold for approval:** held videos download but stay invisible to the kids until you publish them, one at a time or with **Publish all ready** for a whole playlist.
+- **Library:**
+  - Videos are grouped into a show per YouTube channel. Shows can be renamed and merged; episodes can be renamed, reordered and moved between shows.
+  - Artwork can be set from an upload or a frame of the video. Anything can be hidden without deleting it.
+  - Disk use is shown per show.
+- **Settings:** the daily allowance and how time is counted, the longest single viewing session, when the day resets, and which Chromecast to use.
+- **History:** what was watched, when and for how long, plus the overrides you applied, for the last 21 days.
+
+## The timer, in detail
+
+Kids are masters of the loophole, so the rules are explicit:
+
+| Rule | Default |
+| --- | --- |
+| Daily allowance | 60 minutes, resets at 04:00 |
+| What counts | Only time actually playing (pauses don't count). A "wall clock" mode that counts pauses is available. |
+| Longest viewing session | 90 minutes of wall-clock time, even if allowance is left. Nothing playing for 15 minutes ends the session. |
+| Time runs out mid-episode | The episode finishes, then the TV stops and autoplay is suppressed. |
+| Finishing grace | At most 15 minutes, so an hour-long video can't run on forever. |
+| Rewatching | Counts like anything else. |
+| Parent overrides | Extra minutes, unlimited today (lifts the session limit too), block today, and stop now. Block and stop now take effect immediately, without grace. |
+| Restarts and Wi-Fi blips | Timer state survives restarts. Time isn't counted while Tellybox can't see the TV. |
+| Other apps casting | Ignored. Only playback that Tellybox started is timed or stopped. |
+
+## How it works
+
+```mermaid
+flowchart LR
+  kid[Kid app<br/>any browser] --> web
+  admin[Admin pages<br/>phone or laptop] --> web
+  yt[YouTube] -- yt-dlp --> worker
+  subgraph server[Your home server · Docker Compose]
+    web[web<br/>pages, live updates,<br/>signed MP4 URLs]
+    worker[worker<br/>downloads, encodes,<br/>yt-dlp updates, backups]
+    cast[cast<br/>Chromecast session,<br/>timer, autoplay]
+    store[(SQLite + media)]
+    web --> cast
+    web --> store
+    worker --> store
+    cast --> store
+  end
+  cast <--> tv[Chromecast<br/>Default Media Receiver]
+  web -- MP4 over HTTP --> tv
+```
+
+- **Downloads:** videos are fetched with [yt-dlp](https://github.com/yt-dlp/yt-dlp) at up to 720p and stored as H.264/AAC MP4 with fast start.
+  - When YouTube already serves H.264, the file is only remuxed, which takes seconds. Otherwise it's encoded with x264 at low priority; no GPU is needed.
+  - yt-dlp updates itself every night, or from a button on the Jobs page, without rebuilding the image.
+- **Casting:** the Chromecast's standard Default Media Receiver plays the files straight from your server. It works on the original 2013 Chromecast; a tap typically reaches the TV in about 4 seconds.
+- **Media links:** the links given to the Chromecast are HMAC-signed and expire after 24 hours, because a Chromecast can't log in.
+- **Timer:** one service owns the Chromecast connection and the timer. It pushes every state change to all open pages over Server-Sent Events.
+- **Storage:** everything lives in one SQLite file plus a media folder, so a backup is a single file. A built-in `tellybox backup` command makes a consistent copy while everything keeps running.
+
+**Stack:** Python 3.12, FastAPI, pychromecast, yt-dlp, ffmpeg and SQLite. The frontend is vanilla JavaScript and CSS with no build step, and the admin pages are server-rendered Jinja templates.
+
+## Get started
+
+You need:
+- a Linux machine with Docker that stays on (a home server, NAS or mini PC);
+- a Chromecast on the same network;
+- about 0.5 to 1 GB of disk per hour of video.
+
+The **[installation and deployment guide](docs/installation.md)** walks through the setup:
+- the compose file, the admin password and the folder permissions;
+- first-run setup and HTTPS behind a reverse proxy;
+- remote access over Tailscale;
+- backups, updates and troubleshooting.
+
+The short version:
+
+```sh
+git clone https://github.com/sandermvanvliet/Tellybox.git && cd Tellybox
+sudo install -d -o 1500 -g 1500 data media        # the containers run as uid/gid 1500
+echo "TELLYBOX_ADMIN_PASSWORD=choose-a-good-one" > .env
+docker compose up -d --build
+# open http://<server-ip>:8080/admin to set things up, and http://<server-ip>:8080 for the kids
+```
+
+## Roadmap
+
+Tellybox is used daily by one family. What's done and what's next:
+
+- [x] Kid picker, casting, the timer with grace and overrides, and continue watching with autoplay
+- [x] Adding videos and playlists, hold for approval, library management, history
+- [x] Docker deployment with CI, nightly backups and self-updating yt-dlp
+- [x] English, Dutch and German, chosen per browser
+- [ ] **Profiles per kid:** a "who's watching?" screen with a picture per kid, and an allowance and history for each
+- [ ] **No sponsor segments:** sponsor parts, self-promotion and "like and subscribe" reminders are cut out of the file at download, using [SponsorBlock](https://github.com/ajayyy/SponsorBlock)
+- [ ] **Channel subscriptions:** new uploads from a channel land in an approval inbox
+- [ ] **Episode splitting:** cut long compilation videos into single episodes. It starts with manual cut points and YouTube chapters, and later comes automatic title-card detection.
+- [ ] **Tellybox on the TV itself:** its own Cast receiver shows the sinking sun in a corner, a goodnight screen when time is up, show artwork while loading, and an up-next card. The standard receiver stays as a fallback.
+
+The full product requirements are in [docs/PRD.md](docs/PRD.md), and the build log is in [docs/PROGRESS.md](docs/PROGRESS.md).
+
+## Development
+
+```sh
+python3.12 -m venv .venv && .venv/bin/pip install -e '.[dev]'
+.venv/bin/pytest -q                                          # ~700 tests, no network or Chromecast needed
+.venv/bin/python scripts/kid_mock_server.py --port 8099      # the kid app against a mock API, every state scriptable
+```
+
+The timer and cast controller are tested with a fake clock and a fake Chromecast. [docs/kid-api.md](docs/kid-api.md) describes the kid app's API.
+
+## License
+
+Copyright © 2026 Sander van Vliet.
+
+Tellybox is free software: you can redistribute it and/or modify it under the terms of the [GNU General Public License](LICENSE) as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. It is distributed in the hope that it will be useful, but without any warranty; see the license for details.
+
+## A note on YouTube
+
+Tellybox downloads videos for private viewing at home. Doing that may conflict with YouTube's Terms of Service. Use it for your own household only, and don't redistribute what you download. Tellybox is not affiliated with YouTube or Google. The screenshots use invented shows and generated artwork.

@@ -1,0 +1,81 @@
+"""Signed media URLs (NF-3) and recognising our media from a URL (spike finding 7)."""
+
+from datetime import UTC, datetime, timedelta
+
+from tellybox import media_urls
+from tellybox.media_urls import MEDIA_TTL_S, episode_id_from_url, media_path, media_url, verify
+
+SECRET = b"s3cret"
+NOW = datetime(2026, 9, 28, 14, 0, tzinfo=UTC)
+
+
+def split(url: str) -> tuple[int, int, str]:
+    ep, exp, sig = url.rsplit("/media/", 1)[1].removesuffix(".mp4").split("/")
+    return int(ep), int(exp), sig
+
+
+def test_media_path_shape():
+    path = media_path(SECRET, 7, 1_800_000_000)
+    assert path.startswith("/media/7/1800000000/")
+    assert path.endswith(".mp4")
+    sig = path.rsplit("/", 1)[1].removesuffix(".mp4")
+    assert len(sig) == 22
+    assert "=" not in sig
+
+
+def test_media_url_uses_base_and_ttl():
+    url = media_url("http://192.168.1.10:8080/", SECRET, 3, NOW)
+    assert url.startswith("http://192.168.1.10:8080/media/3/")
+    ep, exp, sig = split(url)
+    assert ep == 3
+    assert exp == int(NOW.timestamp()) + MEDIA_TTL_S
+
+
+def test_verify_accepts_valid_signature():
+    url = media_url("http://h", SECRET, 3, NOW)
+    ep, exp, sig = split(url)
+    assert verify(SECRET, ep, exp, sig, NOW)
+    assert verify(SECRET, ep, exp, sig, NOW + timedelta(hours=23))
+
+
+def test_signature_is_stable_across_processes():
+    # Deterministic given the secret: a restarted process re-derives the same URL (NF-7).
+    assert media_path(SECRET, 5, 123) == media_path(SECRET, 5, 123)
+
+
+def test_verify_rejects_expired():
+    url = media_url("http://h", SECRET, 3, NOW, ttl_s=60)
+    ep, exp, sig = split(url)
+    assert not verify(SECRET, ep, exp, sig, NOW + timedelta(seconds=61))
+
+
+def test_verify_rejects_tampering():
+    ep, exp, sig = split(media_url("http://h", SECRET, 3, NOW))
+    assert not verify(SECRET, 4, exp, sig, NOW)
+    assert not verify(SECRET, ep, exp + 1, sig, NOW)
+    assert not verify(b"other", ep, exp, sig, NOW)
+    assert not verify(SECRET, ep, exp, sig[:-1] + ("A" if sig[-1] != "A" else "B"), NOW)
+    assert not verify(SECRET, ep, exp, "", NOW)
+    assert not verify(SECRET, ep, exp, "é" * 22, NOW)
+
+
+def test_episode_id_from_url():
+    url = media_url("http://192.168.1.10:8080", SECRET, 42, NOW)
+    assert episode_id_from_url(url) == 42
+    # Token-independent: any signature/expiry still identifies the episode.
+    assert episode_id_from_url("http://other:1/media/42/1/abc.mp4") == 42
+    assert episode_id_from_url("http://h/media/42/1/abc.mp4?x=1") == 42
+
+
+def test_episode_id_from_url_rejects_foreign():
+    assert episode_id_from_url(None) is None
+    assert episode_id_from_url("") is None
+    assert episode_id_from_url("dQw4w9WgXcQ") is None  # YouTube content id
+    assert episode_id_from_url("http://h/media/x/1/abc.mp4") is None
+    assert episode_id_from_url("http://h/media/1/abc.mp4") is None
+    assert episode_id_from_url("http://h/other/1/2/abc.mp4") is None
+    assert episode_id_from_url("http://h/media/1/2/abc.webm") is None
+
+
+def test_module_exports():
+    assert media_urls.MEDIA_TTL_S == 24 * 3600

@@ -1,0 +1,51 @@
+# Tellybox dev stack (v1 step 2; step 7 finalises deployment).
+#
+#   docker compose build
+#   docker compose run --rm web tellybox dev make-clips 3      # -> ./media/dev-show/ep01.mp4...
+#   docker compose run --rm web tellybox dev seed /media/dev-show
+#   docker compose up -d                                        # web on :8080, cast controller, worker
+#   docker compose run --rm web tellybox add <YouTube URL>      # preview + queue a download (CI-1)
+#   docker compose run --rm web tellybox jobs
+#   docker compose logs -f
+#
+# Host networking is required: the cast service discovers the Chromecast via mDNS and the
+# Chromecast fetches media from the web service over the LAN (NF-10). Set
+# TELLYBOX_MEDIA_BASE_URL (e.g. http://192.168.1.10:8080) if LAN IP autodetection picks the
+# wrong interface. The `:z` volume suffix relabels for SELinux (Fedora); harmless on Ubuntu.
+#
+# The admin pages (AD-1) are locked until TELLYBOX_ADMIN_PASSWORD (or _FILE, for a secret
+# mounted as a file) is set; only the web service needs it. Set it in a .env file or the shell.
+
+x-tellybox: &tellybox
+  build: .
+  image: tellybox:dev
+  network_mode: host
+  restart: unless-stopped
+  volumes:
+    - ./data:/data:z
+    - ./media:/media:z
+
+x-tellybox-env: &tellybox-env
+  TELLYBOX_DATA_DIR: /data
+  TELLYBOX_MEDIA_DIR: /media
+  TZ: ${TZ:-Europe/Amsterdam}
+  TELLYBOX_MEDIA_BASE_URL: ${TELLYBOX_MEDIA_BASE_URL:-}
+
+services:
+  web:
+    <<: *tellybox
+    command: ["python", "-m", "tellybox.web"]
+    environment:
+      <<: *tellybox-env
+      TELLYBOX_ADMIN_PASSWORD: ${TELLYBOX_ADMIN_PASSWORD:-}
+      TELLYBOX_ADMIN_PASSWORD_FILE: ${TELLYBOX_ADMIN_PASSWORD_FILE:-}
+
+  cast:
+    <<: *tellybox
+    environment: *tellybox-env
+    command: ["python", "-m", "tellybox.cast"]
+
+  worker:
+    <<: *tellybox
+    environment: *tellybox-env
+    command: ["python", "-m", "tellybox.worker"]

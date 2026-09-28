@@ -1,0 +1,103 @@
+{
+  "id": "PLtractor123",
+  "title": "Tractor Tom - Full Episodes",
+  "availability": "public",
+  "description": "",
+  "tags": [],
+  "thumbnails": [
+    {"url": "https://i.ytimg.com/vi/vid00000001/hqdefault.jpg?sqp=pl", "height": 94, "width": 168, "id": "0", "resolution": "168x94"}
+  ],
+  "modified_date": "20260901",
+  "view_count": 1234567,
+  "playlist_count": 7,
+  "channel": "Tractor Tom Official",
+  "channel_id": "UCtractor",
+  "uploader_id": "@tractortom",
+  "uploader": "Tractor Tom Official",
+  "channel_url": "https://www.youtube.com/channel/UCtractor",
+  "uploader_url": "https://www.youtube.com/@tractortom",
+  "_type": "playlist",
+  "entries": [
+    {
+      "_type": "url", "ie_key": "Youtube", "id": "vid00000001",
+      "url": "https://www.youtube.com/watch?v=vid00000001",
+      "title": "Tractor Tom - Episode 1",
+      "thumbnails": [
+        {"url": "https://i.ytimg.com/vi/vid00000001/hqdefault.jpg?sqp=small", "height": 94, "width": 168},
+        {"url": "https://i.ytimg.com/vi/vid00000001/hqdefault.jpg?sqp=large", "height": 188, "width": 336},
+        {"url": "https://i.ytimg.com/vi/vid00000001/hqdefault.jpg?sqp=mid", "height": 138, "width": 246}
+      ],
+      "duration": 661, "view_count": 250000, "timestamp": null,
+      "live_status": null, "availability": null,
+      "channel_url": "https://www.youtube.com/channel/UCtractor", "uploader_url": null, "creators": null,
+      "channel": "Tractor Tom Official", "channel_id": "UCtractor", "uploader": "Tractor Tom Official"
+    },
+    {
+      "_type": "url", "ie_key": "Youtube", "id": "vid00000002",
+      "url": "https://www.youtube.com/watch?v=vid00000002&list=PLtractor123&index=2",
+      "title": "Peppa Pig - Muddy Puddles",
+      "thumbnails": [],
+      "duration": 300.5, "view_count": 999, "timestamp": null,
+      "live_status": "not_live", "availability": "unlisted",
+      "channel_url": "https://www.youtube.com/channel/UCpeppa", "uploader_url": null, "creators": null,
+      "channel": "Peppa Pig - Official Channel", "channel_id": "UCpeppa", "uploader": "Peppa Pig - Official Channel"
+    },
+    {
+      "_type": "url", "ie_key": "Youtube", "id": "vid00000003",
+      "url": "https://www.youtube.com/watch?v=vid00000003",
+      "title": "[Private video]",
+      "thumbnails": [{"url": "https://i.ytimg.com/img/no_thumbnail.jpg", "height": 90, "width": 120}],
+      "duration": null, "view_count": null, "timestamp": null,
+      "live_status": null, "availability": null,
+      "channel_url": null, "uploader_url": null, "creators": null,
+      "channel": null, "channel_id": null, "uploader": null
+    },
+    {
+      "_type": "url", "ie_key": "Youtube", "id": "vid00000004",
+      "url": "https://www.youtube.com/watch?v=vid00000004",
+      "title": "[Deleted video]",
+      "thumbnails": [{"url": "https://i.ytimg.com/img/no_thumbnail.jpg", "height": 90, "width": 120}],
+      "duration": null, "view_count": null, "timestamp": null,
+      "live_status": null, "availability": null,
+      "channel_url": null, "uploader_url": null, "creators": null,
+      "channel": null, "channel_id": null, "uploader": null
+    },
+    {
+      "_type": "url", "ie_key": "Youtube", "id": "vid00000005",
+      "url": "https://www.youtube.com/watch?v=vid00000005",
+      "title": "Tractor Tom - Christmas Special (Premiere)",
+      "thumbnails": [{"url": "https://i.ytimg.com/vi/vid00000005/hqdefault.jpg", "height": 360, "width": 480}],
+      "duration": null, "view_count": null, "timestamp": 1790000000,
+      "live_status": "is_upcoming", "availability": null,
+      "channel_url": "https://www.youtube.com/channel/UCtractor", "uploader_url": null, "creators": null,
+      "channel": "Tractor Tom Official", "channel_id": "UCtractor", "uploader": "Tractor Tom Official"
+    },
+    {
+      "_type": "url", "ie_key": "Youtube", "id": "vid00000006",
+      "url": "https://www.youtube.com/watch?v=vid00000006",
+      "title": "Tractor Tom - Members Bonus",
+      "thumbnails": [{"url": "https://i.ytimg.com/vi/vid00000006/hqdefault.jpg", "height": 360, "width": 480}],
+      "duration": 420, "view_count": 12, "timestamp": null,
+      "live_status": null, "availability": "subscriber_only",
+      "channel_url": "https://www.youtube.com/channel/UCtractor", "uploader_url": null, "creators": null,
+      "channel": "Tractor Tom Official", "channel_id": "UCtractor", "uploader": "Tractor Tom Official"
+    },
+    {
+      "_type": "url", "ie_key": "Youtube", "id": "vid00000007",
+      "url": "https://www.youtube.com/watch?v=vid00000007",
+      "title": "Tractor Tom - 24/7 Live",
+      "thumbnails": [{"url": "https://i.ytimg.com/vi/vid00000007/hqdefault_live.jpg", "height": 360, "width": 480}],
+      "duration": null, "view_count": null, "timestamp": null,
+      "live_status": "is_live", "availability": null,
+      "channel_url": "https://www.youtube.com/channel/UCtractor", "uploader_url": null, "creators": null,
+      "channel": "Tractor Tom Official", "channel_id": "UCtractor", "uploader": "Tractor Tom Official"
+    }
+  ],
+  "extractor_key": "YoutubeTab",
+  "extractor": "youtube:tab",
+  "webpage_url": "https://www.youtube.com/playlist?list=PLtractor123",
+  "original_url": "https://www.youtube.com/playlist?list=PLtractor123",
+  "webpage_url_basename": "playlist",
+  "webpage_url_domain": "youtube.com",
+  "epoch": 1790000000
+}

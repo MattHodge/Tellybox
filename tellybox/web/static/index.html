@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#8FD3FF">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Tellybox">
+  <meta name="format-detection" content="telephone=no">
+  <title>Tellybox</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/static/icon-192.png">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body class="is-day">
+  <div class="app">
+    <!-- The sky is the timer (KA-8): the sun sinks as today's time runs out. -->
+    <header class="sky" id="sky" role="img" aria-label="Time left">
+      <div class="sky-layer sky-day"></div>
+      <div class="sky-layer sky-dusk"></div>
+      <div class="sky-layer sky-night"></div>
+      <div class="stars" aria-hidden="true">
+        <svg viewBox="0 0 20 20" style="--x:8%;--y:22%;--s:1;--d:0s"><path d="M10 1q1.6 7.4 9 9-7.4 1.6-9 9-1.6-7.4-9-9 7.4-1.6 9-9Z"/></svg>
+        <svg viewBox="0 0 20 20" style="--x:19%;--y:52%;--s:.7;--d:1.3s"><path d="M10 1q1.6 7.4 9 9-7.4 1.6-9 9-1.6-7.4-9-9 7.4-1.6 9-9Z"/></svg>
+        <svg viewBox="0 0 20 20" style="--x:31%;--y:14%;--s:.85;--d:.6s"><path d="M10 1q1.6 7.4 9 9-7.4 1.6-9 9-1.6-7.4-9-9 7.4-1.6 9-9Z"/></svg>
+        <svg viewBox="0 0 20 20" style="--x:44%;--y:40%;--s:.6;--d:2.1s"><path d="M10 1q1.6 7.4 9 9-7.4 1.6-9 9-1.6-7.4-9-9 7.4-1.6 9-9Z"/></svg>
+        <svg viewBox="0 0 20 20" style="--x:56%;--y:18%;--s:1.1;--d:1.7s"><path d="M10 1q1.6 7.4 9 9-7.4 1.6-9 9-1.6-7.4-9-9 7.4-1.6 9-9Z"/></svg>
+        <svg viewBox="0 0 20 20" style="--x:66%;--y:48%;--s:.7;--d:.2s"><path d="M10 1q1.6 7.4 9 9-7.4 1.6-9 9-1.6-7.4-9-9 7.4-1.6 9-9Z"/></svg>
+        <svg viewBox="0 0 20 20" style="--x:90%;--y:44%;--s:.8;--d:2.6s"><path d="M10 1q1.6 7.4 9 9-7.4 1.6-9 9-1.6-7.4-9-9 7.4-1.6 9-9Z"/></svg>
+      </div>
+      <svg class="moon" viewBox="0 0 60 60" aria-hidden="true">
+        <path d="M40 6a24 24 0 1 0 14 38A20 20 0 0 1 40 6Z"/>
+      </svg>
+      <div class="cloud cloud-a" aria-hidden="true"></div>
+      <div class="cloud cloud-b" aria-hidden="true"></div>
+      <div class="sun" id="sun" aria-hidden="true"></div>
+      <svg class="far-hills" viewBox="0 0 400 60" preserveAspectRatio="none" aria-hidden="true">
+        <path class="far-hill-back" d="M0 34C50 10 110 8 170 26s120 4 170-10 60 6 60 6V60H0Z"/>
+        <path class="far-hill-front" d="M0 44c60-16 130-18 200-4s140 10 200-6V60H0Z"/>
+      </svg>
+    </header>
+
+    <main class="view" id="view" tabindex="-1"></main>
+
+    <footer class="hill" id="hill">
+      <svg class="hill-shape" viewBox="0 0 400 100" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0 34C90 6 310 6 400 34V100H0Z"/>
+      </svg>
+      <div class="now-bar" id="nowbar"></div>
+    </footer>
+  </div>
+  <script type="module" src="/static/app.js"></script>
+</body>
+</html>

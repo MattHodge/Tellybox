@@ -7,3 +7,4 @@ data/
 CLAUDE.local.md
 build/
 dist/
+.claude/worktrees/

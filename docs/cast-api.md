@@ -35,7 +35,8 @@ The `cast` service listens on `127.0.0.1` only; the `web` service is its only cl
         "remaining_s": 1700 | null,          // v2: this profile alone; null = unlimited
         "can_start": true,                   // v2: could this profile start a pick on its own?
         "reason": null | "allowance" | "session_max" | "blocked",   // v2: why not
-        "watching": true                     // v2: one of the current watchers
+        "watching": true                     // v2: one of the current episode's profiles (now_playing.profile_ids);
+                                             // false when nothing plays, even though the timer keeps the last group
       }
     ]
   },

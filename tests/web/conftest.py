@@ -46,7 +46,9 @@ def cast_state(
     """A cast service state snapshot, shaped like CastController.state()."""
     if profiles is None:
         profiles = [{"profile_id": PROFILE, "day": "2026-09-28", "used_s": used_s, "extra_s": extra_s,
-                     "unlimited": unlimited, "blocked": False}]
+                     "unlimited": unlimited, "blocked": False, "remaining_s": remaining_s,
+                     "can_start": not time_up, "reason": "allowance" if time_up else None,
+                     "watching": now_playing is not None}]
     return {
         "connection": connection,
         "device": {"uuid": "5f0c2a17", "name": "Living Room TV"},
@@ -58,9 +60,10 @@ def cast_state(
     }
 
 
-def playing(episode_id: int, show_id: int, state: str = "playing", title: str = "Ep") -> dict:
+def playing(episode_id: int, show_id: int, state: str = "playing", title: str = "Ep",
+            profile_ids: list[int] | None = None) -> dict:
     return {"episode_id": episode_id, "show_id": show_id, "title": title, "state": state,
-            "position_s": 12, "duration_s": 600}
+            "position_s": 12, "duration_s": 600, "profile_ids": [PROFILE] if profile_ids is None else profile_ids}
 
 
 class FakeCast:
@@ -83,14 +86,14 @@ class FakeCast:
         self._check()
         return self.current
 
-    async def play(self, episode_id: int) -> dict:
-        self.calls.append(("play", episode_id))
+    async def play(self, episode_id: int, profile_ids: list[int]) -> dict:
+        self.calls.append(("play", episode_id, list(profile_ids)))
         self._check()
         if self.mode == "time_up":
             raise TimeUp(cast_state(remaining_s=0, used_s=3600, time_up=True))
         if self.mode == "not_found":
             raise CastNotFound(episode_id)
-        return cast_state(now_playing=playing(episode_id, 0, "loading"))
+        return cast_state(now_playing=playing(episode_id, 0, "loading", profile_ids=sorted(profile_ids)))
 
     async def pause(self) -> dict:
         self.calls.append(("pause",))

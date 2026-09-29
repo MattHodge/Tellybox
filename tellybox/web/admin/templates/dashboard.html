@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% import "_labels.html" as labels %}
+{% import "_profile.html" as pf %}
 {% block title %}{{ _("Now") }}{% endblock %}
 {% block head %}
 <link rel="stylesheet" href="/admin/static/dashboard.css">
@@ -28,6 +29,7 @@
           {% if now_playing.show_name %}<p class="muted">{{ now_playing.show_name }}</p>{% endif %}
           <p><span class="badge">{{ labels.player_state(now_playing.state) }}</span>
              {{ now_playing.position_s | duration }} / {{ now_playing.duration_s | duration }}</p>
+          <p class="muted watchers">{% if now_playing.watcher_names %}{{ _("Watching: %(names)s", names=now_playing.watcher_names | join(", ")) }}{% endif %}</p>
         </div>
       </div>
       <form method="post" action="/admin/stop" class="inline"><button class="btn danger">{{ _("Stop") }}</button></form>
@@ -39,9 +41,22 @@
 
 <script type="application/json" id="profiles-data">{{ profiles | tojson }}</script>
 
+{% macro override(profile_id, kind, value, label, danger=False) -%}
+<form method="post" action="/admin/overrides" class="inline">
+  {% if profile_id is not none %}<input type="hidden" name="profile_id" value="{{ profile_id }}">{% endif %}
+  <input type="hidden" name="kind" value="{{ kind }}">
+  {% if value is not none %}<input type="hidden" name="value" value="{{ value }}">{% endif %}
+  <button class="btn small{% if danger %} danger{% endif %}">{{ label }}</button>
+</form>
+{%- endmacro %}
+
 {% for p in profiles %}
 <section class="card" id="profile-{{ p.id }}">
-  <h2>{{ p.name }}</h2>
+  <div class="row profile-head">
+    {{ pf.picture(p, 48) }}
+    <h2>{{ p.name }}</h2>
+    <span class="badge ok watching-badge{% if not p.watching %} hidden{% endif %}">{{ _("watching") }}</span>
+  </div>
   <p class="big used">
     {{ _("%(time)s used", time=p.used_s | minutes) }}{% if p.remaining_s is not none %} &middot; {{ _("%(time)s left", time=p.remaining_s | minutes) }}{% endif %}
   </p>
@@ -50,38 +65,29 @@
     <span class="badge bad blocked-badge{% if not p.blocked %} hidden{% endif %}">{{ _("blocked") }}</span>
   </p>
   <div class="row">
-    <form method="post" action="/admin/overrides" class="inline">
-      <input type="hidden" name="profile_id" value="{{ p.id }}">
-      <input type="hidden" name="kind" value="extra_minutes">
-      <input type="hidden" name="value" value="15">
-      <button class="btn small">{{ _("+%(minutes)s min", minutes=15) }}</button>
-    </form>
-    <form method="post" action="/admin/overrides" class="inline">
-      <input type="hidden" name="profile_id" value="{{ p.id }}">
-      <input type="hidden" name="kind" value="extra_minutes">
-      <input type="hidden" name="value" value="30">
-      <button class="btn small">{{ _("+%(minutes)s min", minutes=30) }}</button>
-    </form>
-    <form method="post" action="/admin/overrides" class="inline">
-      <input type="hidden" name="profile_id" value="{{ p.id }}">
-      <input type="hidden" name="kind" value="unlimited">
-      <input type="hidden" name="value" value="{{ 0 if p.unlimited else 1 }}">
-      <button class="btn small">{{ _("Turn off unlimited") if p.unlimited else _("Unlimited today") }}</button>
-    </form>
-    <form method="post" action="/admin/overrides" class="inline">
-      <input type="hidden" name="profile_id" value="{{ p.id }}">
-      <input type="hidden" name="kind" value="block">
-      <input type="hidden" name="value" value="{{ 0 if p.blocked else 1 }}">
-      <button class="btn small danger">{{ _("Unblock") if p.blocked else _("Block today") }}</button>
-    </form>
-    <form method="post" action="/admin/overrides" class="inline">
-      <input type="hidden" name="profile_id" value="{{ p.id }}">
-      <input type="hidden" name="kind" value="stop_now">
-      <button class="btn small danger">{{ _("Stop now") }}</button>
-    </form>
+    {{ override(p.id, "extra_minutes", 15, _("+%(minutes)s min", minutes=15)) }}
+    {{ override(p.id, "extra_minutes", 30, _("+%(minutes)s min", minutes=30)) }}
+    {{ override(p.id, "unlimited", 0 if p.unlimited else 1, _("Turn off unlimited") if p.unlimited else _("Unlimited today")) }}
+    {{ override(p.id, "block", 0 if p.blocked else 1, _("Unblock") if p.blocked else _("Block today"), True) }}
+    {{ override(p.id, "stop_now", none, _("Stop now"), True) }}
   </div>
 </section>
 {% endfor %}
+
+{% if profiles | length > 1 %}
+<section class="card" id="everyone">
+  <h2>{{ _("Everyone") }}</h2>
+  <div class="row">
+    {{ override(none, "extra_minutes", 15, _("+%(minutes)s min", minutes=15)) }}
+    {{ override(none, "extra_minutes", 30, _("+%(minutes)s min", minutes=30)) }}
+    {{ override(none, "unlimited", 1, _("Unlimited today")) }}
+    {{ override(none, "unlimited", 0, _("Turn off unlimited")) }}
+    {{ override(none, "block", 1, _("Block today"), True) }}
+    {{ override(none, "block", 0, _("Unblock")) }}
+    {{ override(none, "stop_now", none, _("Stop now"), True) }}
+  </div>
+</section>
+{% endif %}
 
 <section class="card">
   <h2>{{ _("Downloads & jobs") }}</h2>

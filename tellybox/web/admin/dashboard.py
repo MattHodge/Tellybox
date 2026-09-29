@@ -33,13 +33,16 @@ def _now_playing_context(conn: sqlite3.Connection, now_playing: dict | None) -> 
     row = conn.execute(
         "SELECT s.name FROM episode e JOIN show s ON s.id = e.show_id WHERE e.id = ?", (now_playing["episode_id"],)
     ).fetchone()
-    return {**now_playing, "show_name": row["name"] if row else None}
+    watchers = set(now_playing.get("profile_ids") or [])
+    names = [r["name"] for r in conn.execute("SELECT id, name FROM profile ORDER BY sort_order, id") if r["id"] in watchers]
+    return {**now_playing, "show_name": row["name"] if row else None, "watcher_names": names}
 
 
 def _profiles_context(conn: sqlite3.Connection, state: dict | None) -> list[dict]:
     rows = conn.execute(
-        "SELECT id, name, daily_allowance_min FROM profile ORDER BY id"
+        "SELECT id, name, avatar, picture_path, daily_allowance_min FROM profile ORDER BY sort_order, id"
     ).fetchall()
+    watchers = set(((state or {}).get("now_playing") or {}).get("profile_ids") or [])
     timers = {p["profile_id"]: p for p in ((state or {}).get("timer") or {}).get("profiles", [])}
     result = []
     for r in rows:
@@ -51,7 +54,8 @@ def _profiles_context(conn: sqlite3.Connection, state: dict | None) -> list[dict
         blocked = bool(t["blocked"]) if t else False
         remaining_s = None if unlimited else max(0.0, allowance_s + extra_s - used_s)
         result.append({
-            "id": r["id"], "name": r["name"], "allowance_min": r["daily_allowance_min"],
+            "id": r["id"], "name": r["name"], "avatar": r["avatar"], "picture_path": r["picture_path"],
+            "watching": r["id"] in watchers, "allowance_min": r["daily_allowance_min"],
             "used_s": used_s, "remaining_s": remaining_s, "unlimited": unlimited, "blocked": blocked,
         })
     return result

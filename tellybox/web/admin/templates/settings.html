@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_profile.html" as pf %}
 {% block title %}{{ _("Settings") }}{% endblock %}
 {% block content %}
 <h1>{{ _("Settings") }}</h1>
@@ -6,7 +7,7 @@
 <form method="post" action="/admin/settings" class="stack">
   {% for p in profiles %}
   <section class="card">
-    <h2>{{ p.name }}</h2>
+    <div class="row profile-head">{{ pf.picture(p, 40) }}<h2>{{ p.name }}</h2></div>
     <div class="stack">
       <label>{{ _("Daily allowance (minutes)") }}
         <input type="number" name="profile_{{ p.id }}_allowance_min" min="1" max="1440"

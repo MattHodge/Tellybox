@@ -47,3 +47,39 @@ def test_history_shows_overrides(admin, admin_env):
     r = admin.get("/admin/history")
     assert r.status_code == 200
     assert "+15 min" in r.text
+
+
+def _watched_by_two(env):
+    conn = env.conn
+    conn.execute("UPDATE profile SET name = 'Mila', avatar = 'fox' WHERE id = 1")
+    conn.execute("INSERT INTO profile (id, name, avatar, sort_order, created_at) VALUES (2, 'Noor', 'owl', 2, 'x')")
+    for ep, who in ((env.ids.b1, [1]), (env.ids.b2, [2]), (env.ids.a1, [1, 2])):
+        sid = store.open_watch_session(conn, ep, who, NOW)
+        store.close_watch_session(conn, sid, EndReason.FINISHED, NOW, 300.0)
+
+
+def test_history_rows_show_who_watched(admin, admin_env):
+    _watched_by_two(admin_env)
+    text = admin.get("/admin/history").text
+    assert "Mila" in text and "Noor" in text
+    assert "/static/avatars/fox.svg" in text and "/static/avatars/owl.svg" in text
+
+
+def test_history_profile_filter(admin, admin_env):
+    _watched_by_two(admin_env)
+    text = admin.get("/admin/history", params={"profile": 2}).text
+    assert "Title b2" in text and "Title a1" in text and "Title b1" not in text
+    assert "Title b1" in admin.get("/admin/history").text
+    assert '<option value="2" selected>' in text
+
+
+def test_history_profile_filter_ignores_garbage(admin, admin_env):
+    _watched_by_two(admin_env)
+    assert admin.get("/admin/history", params={"profile": "x"}).status_code == 200
+    assert "Title b1" in admin.get("/admin/history", params={"profile": ""}).text
+
+
+def test_history_overrides_name_their_profile(admin, admin_env):
+    _watched_by_two(admin_env)
+    store.log_override(admin_env.conn, 2, NOW.date(), "block", 1, NOW)
+    assert "Noor" in admin.get("/admin/history").text.split("Overrides")[1]

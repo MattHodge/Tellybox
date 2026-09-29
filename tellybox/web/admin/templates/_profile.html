@@ -1,0 +1,28 @@
+{#- A profile's picture: the uploaded photo wins over the built-in avatar; with neither, a plain disc. -#}
+{% macro picture(p, size=48) -%}
+{% if p.picture_path -%}
+<img class="pic" src="/img/profile/{{ p.id }}.jpg?v={{ p.picture_path | urlencode }}" alt="" width="{{ size }}" height="{{ size }}">
+{%- elif p.avatar -%}
+<img class="pic" src="/static/avatars/{{ p.avatar }}.svg" alt="" width="{{ size }}" height="{{ size }}">
+{%- else -%}
+<span class="pic placeholder" style="width:{{ size }}px;height:{{ size }}px"></span>
+{%- endif %}
+{%- endmacro %}
+
+{#- Radio tiles for the built-in avatars; `avatars` is [(key, label)], `selected` the current key or none. -#}
+{% macro picker(avatars, selected, none_label) -%}
+<div class="avatar-picker" role="radiogroup">
+  <label class="avatar-tile">
+    <input type="radio" name="avatar" value=""{% if not selected %} checked{% endif %}>
+    <span class="pic placeholder" style="width:56px;height:56px"></span>
+    <span class="sr-only">{{ none_label }}</span>
+  </label>
+  {% for key, label in avatars %}
+  <label class="avatar-tile">
+    <input type="radio" name="avatar" value="{{ key }}"{% if selected == key %} checked{% endif %}>
+    <img class="pic" src="/static/avatars/{{ key }}.svg" alt="" width="56" height="56">
+    <span class="sr-only">{{ label }}</span>
+  </label>
+  {% endfor %}
+</div>
+{%- endmacro %}

@@ -431,6 +431,27 @@ def set_episode_thumbnail(conn: sqlite3.Connection, media_dir: Path, episode_id:
         _remove_unreferenced(conn, media_dir, [old])
 
 
+def set_profile_picture(conn: sqlite3.Connection, media_dir: Path, profile_id: int, rel_path: str | None) -> None:  # PR-1
+    """Point the profile at a freshly saved photo (or None to remove it), then drop the old file if unused."""
+    row = conn.execute("SELECT picture_path FROM profile WHERE id = ?", (profile_id,)).fetchone()
+    if row is None:
+        raise KeyError(profile_id)
+    old = row["picture_path"]
+    conn.execute("UPDATE profile SET picture_path = ? WHERE id = ?", (rel_path, profile_id))
+    if old and old != rel_path:
+        _remove_unreferenced(conn, media_dir, [old])
+
+
+def delete_profile(conn: sqlite3.Connection, media_dir: Path, profile_id: int) -> None:  # PR-1
+    """Delete a profile with its positions and history links (cascade) and its photo file."""
+    row = conn.execute("SELECT picture_path FROM profile WHERE id = ?", (profile_id,)).fetchone()
+    if row is None:
+        raise KeyError(profile_id)
+    conn.execute("DELETE FROM profile WHERE id = ?", (profile_id,))
+    if row["picture_path"]:
+        _remove_unreferenced(conn, media_dir, [row["picture_path"]])
+
+
 def _orphan_sources(conn: sqlite3.Connection, source_ids: set[int]) -> list[sqlite3.Row]:
     """Source videos among source_ids that no episode refers to any more."""
     rows = []

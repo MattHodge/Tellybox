@@ -21,6 +21,9 @@ INITIAL_STATE: dict = {
     "now_playing": None,
     "sky": {"fraction_left": None, "last_five": False, "unlimited": False},
     "time_up": False,
+    "watching": [],
+    "profiles": {},
+    "day": None,
 }
 
 

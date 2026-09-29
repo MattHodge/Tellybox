@@ -159,7 +159,7 @@ Three steps are open:
 - Merged as PR #1 (PR numbers restarted in the public repository) and deployed (version 2026.09.29.2). The owner checked the admin pages and the kid app's screens on the devices: fine.
 - **Open:** the playback checks on the real TV, in `docs/plans/step8-device-checks.md`. v2 is done when they pass.
 
-### 9. Admin API for Home Assistant (v2.1), merged as PR #3; device checks open
+### 9. Admin API for Home Assistant (v2.1), deployed; device checks open
 Inserted as step 9 by the owner on 2026-09-29: Phase 0 of the plan "Tellybox × Home Assistant: upstream features & integration plan". It covers API tokens, the admin state and its event stream, override endpoints, the instance id and `/api/info`. The Home Assistant integration itself lives in separate repositories later.
 - Plan `docs/plans/step9-ha-api.md`, approved 2026-09-29. Subagent briefs: `docs/plans/step9-handoff.md`. Branch `step9/ha-api`.
 - Renumbered: SponsorBlock is now step 10, subscriptions 11, manual splitting 12, and smart splitting 14. The receiver keeps 13, because it's already in progress.
@@ -194,11 +194,13 @@ Inserted as step 9 by the owner on 2026-09-29: Phase 0 of the plan "Tellybox × 
   - 401 after revoke;
   - no token in the access log.
 - 999 tests.
+- Merged as PR #3 and deployed (version 2026.09.29.5). On the server:
+  - `/api/info` answers with the instance id, so migration 007 ran;
+  - `/api/admin/state` without a token gets a 401.
 - **Open:**
-  - PR #3 is merged; CI deploys it;
-  - the owner's device checks after deploy (`docs/plans/step9-ha-api.md`, "Real-device checks").
+  - the owner's device checks (`docs/plans/step9-ha-api.md`, "Real-device checks").
   - v2.1 is done when they pass. The PRD's gate is that it runs at home for a week before the integration builds on it.
-- **After step 9, outside this repository:** Phase 1 of the owner's Home Assistant plan. That is a `pytellybox` async client and an `ha-tellybox` custom integration (HACS), built against `docs/admin-api.md`. It gives:
+- **Home Assistant integration (Phase 1), in progress since 2026-09-29, outside this repository:** approved by the owner. There are two public Apache-2.0 repositories, [`pytellybox`](https://github.com/sandermvanvliet/pytellybox) (published to PyPI) and [`ha-tellybox`](https://github.com/sandermvanvliet/ha-tellybox) (installed through HACS; HA 2026.4 or later), and there is one Home Assistant device per kid. The plan and progress log are in `ha-tellybox/docs/`. What it is: That is a `pytellybox` async client and an `ha-tellybox` custom integration (HACS), built against `docs/admin-api.md`. It gives:
   - a media player;
   - time-left and time-used sensors;
   - time-up and last-five binary sensors;

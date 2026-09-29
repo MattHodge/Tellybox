@@ -33,11 +33,15 @@ export async function postJSON(url, body) {
   }
 }
 
+// `ids` is the device's group (PR-2): the profiles that are watching, passed on every call.
+const group = (ids) => (ids && ids.length ? `?profiles=${ids.map(encodeURIComponent).join(",")}` : "");
+
 export const api = {
-  home: () => getJSON("/api/kid/home"),
-  show: (id) => getJSON(`/api/kid/shows/${encodeURIComponent(id)}`),
+  profiles: () => getJSON("/api/kid/profiles"),
+  home: (ids) => getJSON(`/api/kid/home${group(ids)}`),
+  show: (id, ids) => getJSON(`/api/kid/shows/${encodeURIComponent(id)}${group(ids)}`),
   state: () => getJSON("/api/kid/state"),
-  play: (episodeId) => postJSON("/api/kid/play", { episode_id: episodeId }),
+  play: (episodeId, ids) => postJSON("/api/kid/play", { episode_id: episodeId, profile_ids: ids }),
   pause: () => postJSON("/api/kid/pause"),
   resume: () => postJSON("/api/kid/resume"),
 };

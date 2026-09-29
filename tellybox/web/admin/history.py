@@ -22,13 +22,16 @@ def create_router(ctx: AdminContext) -> APIRouter:
     router = APIRouter()
 
     @router.get("/admin/history")
-    def history_page(request: Request) -> HTMLResponse:
+    def history_page(request: Request, profile: str | None = None) -> HTMLResponse:
         reset_time = store.timer_settings(ctx.conn, ctx.config.tz).reset_time
-        days = history_days(ctx.conn, ctx.clock.now(), ctx.config.tz, reset_time)
+        profiles = ctx.conn.execute(
+            "SELECT id, name, avatar, picture_path FROM profile ORDER BY sort_order, id").fetchall()
+        selected = int(profile) if profile and profile.isdigit() else None  # anything else shows everyone
+        days = history_days(ctx.conn, ctx.clock.now(), ctx.config.tz, reset_time, profile_id=selected)
         has_any = any(d.episodes or d.overrides for d in days)
         return render(
             request, "history.html", nav="history",
-            days=days, tz=ctx.config.tz, has_any=has_any, override_labels={kind: _(label) for kind, label in OVERRIDE_LABELS.items()},
+            days=days, tz=ctx.config.tz, profiles=profiles, selected_profile=selected, has_any=has_any, override_labels={kind: _(label) for kind, label in OVERRIDE_LABELS.items()},
         )
 
     return router

@@ -1,8 +1,21 @@
 {% extends "base.html" %}
+{% import "_profile.html" as pf %}
 {% block title %}{{ _("History") }}{% endblock %}
 {% block content %}
 <h1>{{ _("History") }}</h1>
 <p class="muted">{{ _("The last 21 days.") }}</p>
+
+{% if profiles | length > 1 %}
+<form method="get" action="/admin/history" class="row">
+  <label>{{ _("Show") }}
+    <select name="profile" onchange="this.form.submit()">
+      <option value="">{{ _("Everyone") }}</option>
+      {% for p in profiles %}<option value="{{ p.id }}"{% if p.id == selected_profile %} selected{% endif %}>{{ p.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <noscript><button class="btn small" type="submit">{{ _("Filter") }}</button></noscript>
+</form>
+{% endif %}
 
 {% if not has_any %}
 <p class="muted">{{ _("Nothing watched yet.") }}</p>
@@ -15,12 +28,13 @@
 
     {% if day.episodes %}
     <table class="list">
-      <thead><tr><th>{{ _("Episode") }}</th><th>{{ _("Show") }}</th><th>{{ _("Start") }}</th><th>{{ _("End") }}</th><th>{{ _("Minutes") }}</th><th>{{ _("Ended") }}</th></tr></thead>
+      <thead><tr><th>{{ _("Episode") }}</th><th>{{ _("Show") }}</th><th>{{ _("Who") }}</th><th>{{ _("Start") }}</th><th>{{ _("End") }}</th><th>{{ _("Minutes") }}</th><th>{{ _("Ended") }}</th></tr></thead>
       <tbody>
         {% for ep in day.episodes %}
         <tr>
           <td>{{ ep.title }}</td>
           <td>{{ ep.show_name or "–" }}</td>
+          <td class="who">{% for p in ep.profiles %}<span class="who-one">{{ pf.picture(p, 24) }} {{ p.name }}</span> {% endfor %}</td>
           <td>{{ ep.started_at.astimezone(tz).strftime("%H:%M") }}</td>
           <td>{{ ep.ended_at.astimezone(tz).strftime("%H:%M") if ep.ended_at else "–" }}</td>
           <td>{{ _("%(minutes)s min", minutes=ep.minutes) }}</td>
@@ -37,6 +51,7 @@
       {% for o in day.overrides %}
       <li>
         {{ o.created_at.astimezone(tz).strftime("%H:%M") }} &mdash; {{ override_labels.get(o.kind, o.kind) }}
+        {%- if o.profile %} &middot; {{ pf.picture(o.profile, 20) }} {{ o.profile.name }}{% endif %}
         {%- if o.kind == "extra_minutes" and o.value is not none %} ({{ _("+%(minutes)s min", minutes=o.value) }}){% elif o.value is not none %} ({{ _("on") if o.value else _("off") }}){% endif %}
       </li>
       {% endfor %}

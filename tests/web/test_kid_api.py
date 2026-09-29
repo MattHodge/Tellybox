@@ -80,11 +80,11 @@ def test_show_page_progress_and_finished(env, pos):
 
 def test_progress_is_per_profile(lib, pos):
     conn, ids = lib
-    conn.execute("INSERT INTO profile (id, name, created_at) VALUES (2, 'Other', '2026-01-01T00:00:00Z')")
+    conn.execute("INSERT INTO profile (id, name, sort_order, created_at) VALUES (2, 'Other', 2, '2026-01-01T00:00:00Z')")
     pos(ids.b1, 300, profile=2)
-    assert kid.show_episodes(conn, ids.bravo, profile_id=2)[0]["progress"] == 0.5
-    assert kid.show_episodes(conn, ids.bravo, profile_id=1)[0]["progress"] is None
-    assert kid.show_episodes(conn, ids.bravo)[0]["progress"] is None  # household profile by default
+    assert kid.show_episodes(conn, ids.bravo, profile_ids=[2])[0]["progress"] == 0.5
+    assert kid.show_episodes(conn, ids.bravo, profile_ids=[1])[0]["progress"] is None
+    assert kid.show_episodes(conn, ids.bravo)[0]["progress"] is None  # the first profile by default
 
 
 @pytest.mark.parametrize("which", ["hidden", "missing"])
@@ -174,6 +174,9 @@ def test_reduce_connected(lib, mkstate, mkplaying):
                         "title": "Title a1", "state": "paused"},
         "sky": {"fraction_left": 0.5, "last_five": False, "unlimited": False},
         "time_up": False,
+        "watching": [1],
+        "profiles": {"1": {"fraction_left": 0.5, "last_five": False, "unlimited": False, "time_up": False}},
+        "day": "2026-09-28",
     }
 
 
@@ -196,7 +199,7 @@ def test_reduce_player_states(lib, mkstate, mkplaying, cast, kid_state):
 def test_reduce_now_playing_leaks_nothing_else(lib, mkstate, mkplaying):
     conn, ids = lib
     s = kid.kid_state(conn, mkstate(now_playing=mkplaying(ids.a1, ids.alpha)))
-    assert set(s) == {"tv", "now_playing", "sky", "time_up"}
+    assert set(s) == {"tv", "now_playing", "sky", "time_up", "watching", "profiles", "day"}
     assert set(s["now_playing"]) == {"episode_id", "show_id", "thumb", "title", "state"}
 
 
@@ -270,7 +273,7 @@ def test_play(env):
     assert r.status_code == 200
     assert r.json()["now_playing"]["episode_id"] == ids.a1
     assert r.json()["now_playing"]["state"] == "loading"
-    assert fake.calls == [("play", ids.a1)]
+    assert fake.calls == [("play", ids.a1, [1])]
 
 
 @pytest.mark.parametrize("which", ["a3", "h1", "e1", "missing"])

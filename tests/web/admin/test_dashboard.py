@@ -151,3 +151,60 @@ def test_events_relays_scripted_cast_stream(admin, admin_env, mkstate):
     data_lines = [ln for ln in lines if ln.startswith("data:")]
     assert data_lines
     assert '"remaining_s": 42' in data_lines[0] or "42" in data_lines[0]
+
+
+# --------------------------------------------------------------------------- profiles (step 8, PR-3, AD-3)
+
+
+def _two_profiles(env):
+    conn = env.conn
+    conn.execute("UPDATE profile SET name = 'Mila', avatar = 'fox' WHERE id = 1")
+    conn.execute("INSERT INTO profile (id, name, avatar, sort_order, created_at) VALUES (2, 'Noor', 'owl', 2, 'x')")
+
+
+def test_dashboard_has_a_row_per_profile_in_order_with_avatar(admin, admin_env):
+    _two_profiles(admin_env)
+    admin_env.conn.execute("UPDATE profile SET sort_order = 0 WHERE id = 2")
+    text = admin.get("/admin").text
+    assert text.index('id="profile-2"') < text.index('id="profile-1"')
+    assert "/static/avatars/fox.svg" in text and "/static/avatars/owl.svg" in text
+
+
+def test_dashboard_marks_who_is_watching(admin, admin_env, mkstate, mkplaying):
+    _two_profiles(admin_env)
+    ids = admin_env.ids
+    admin_env.cast.current = mkstate(now_playing=mkplaying(ids.b1, ids.bravo, profile_ids=[2]))
+    text = admin.get("/admin").text
+    row1 = text[text.index('id="profile-1"'):text.index('id="profile-2"')]
+    row2 = text[text.index('id="profile-2"'):].split("</section>")[0]
+    assert "watching-badge hidden" in row1
+    assert "watching-badge hidden" not in row2 and "watching-badge" in row2
+    assert "Watching: Noor" in text
+
+
+def test_dashboard_per_profile_and_everyone_overrides(admin, admin_env):
+    _two_profiles(admin_env)
+    text = admin.get("/admin").text
+    assert text.count('name="profile_id" value="2"') >= 4
+    everyone = text[text.index('id="everyone"'):].split("</section>")[0]
+    assert 'name="profile_id"' not in everyone and 'name="kind"' in everyone
+    r = admin.post("/admin/overrides", data={"kind": "block", "value": "1"}, follow_redirects=False)
+    assert r.status_code == 303
+    assert admin_env.cast.calls[-1] == ("override", "block", 1, None)
+
+
+def test_dashboard_profile_data_is_safe_to_embed(admin, admin_env):
+    admin_env.conn.execute("UPDATE profile SET name = ? WHERE id = 1", ("</script><b>x",))
+    text = admin.get("/admin").text
+    data = text[text.index('id="profiles-data"'):].split("</script>")[0]
+    assert "<b>" not in data and "\\u003c" in data
+
+
+def test_dashboard_js_escapes_names():
+    """The live DOM updates never put a profile name into markup unescaped."""
+    from pathlib import Path
+    js = (Path(__file__).parents[3] / "tellybox/web/admin/static/dashboard.js").read_text()
+    assert "esc(" in js
+    for line in js.splitlines():
+        if "name" in line and ("innerHTML" in line or "insertAdjacentHTML" in line):
+            assert "esc(" in line

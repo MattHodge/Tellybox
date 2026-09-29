@@ -188,6 +188,18 @@ def save_position(
         )
 
 
+def group_position(conn: sqlite3.Connection, profile_ids: list[int], episode_id: int) -> float | None:
+    """Where a group resumes (PB-4): the most recently updated unfinished position among its members."""
+    marks = ",".join("?" * len(profile_ids))
+    row = conn.execute(
+        f"""SELECT position_s FROM playback_position
+            WHERE episode_id = ? AND finished = 0 AND profile_id IN ({marks})
+            ORDER BY updated_at DESC, profile_id LIMIT 1""",
+        (episode_id, *profile_ids),
+    ).fetchone()
+    return row["position_s"] if row else None
+
+
 def get_position(conn: sqlite3.Connection, profile_id: int, episode_id: int) -> tuple[float, bool] | None:
     row = conn.execute(
         "SELECT position_s, finished FROM playback_position WHERE profile_id = ? AND episode_id = ?",

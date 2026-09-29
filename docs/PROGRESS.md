@@ -200,12 +200,22 @@ Inserted as step 9 by the owner on 2026-09-29: Phase 0 of the plan "Tellybox × 
 - **Open:**
   - the owner's device checks (`docs/plans/step9-ha-api.md`, "Real-device checks").
   - v2.1 is done when they pass. The PRD's gate is that it runs at home for a week before the integration builds on it.
-- **Home Assistant integration (Phase 1), in progress since 2026-09-29, outside this repository:** approved by the owner. There are two public Apache-2.0 repositories, [`pytellybox`](https://github.com/sandermvanvliet/pytellybox) (published to PyPI) and [`ha-tellybox`](https://github.com/sandermvanvliet/ha-tellybox) (installed through HACS; HA 2026.4 or later), and there is one Home Assistant device per kid. The plan and progress log are in `ha-tellybox/docs/`. What it is: That is a `pytellybox` async client and an `ha-tellybox` custom integration (HACS), built against `docs/admin-api.md`. It gives:
-  - a media player;
-  - time-left and time-used sensors;
-  - time-up and last-five binary sensors;
-  - override buttons and services;
-  - reauth when a token is revoked.
+- **Home Assistant integration (Phase 1), built and released as v0.1.0 on 2026-09-29, outside this repository.** It lives in two public Apache-2.0 repositories:
+  - [`pytellybox`](https://github.com/sandermvanvliet/pytellybox): the async client and a mock Tellybox, 69 tests;
+  - [`ha-tellybox`](https://github.com/sandermvanvliet/ha-tellybox): a HACS integration for HA 2026.4 or later, 101 tests, with hassfest and HACS validation green.
+
+  What it has:
+  - a Tellybox device: media player, now playing, time left, downloads, time up and last five minutes, and buttons for everyone;
+  - one device per kid: time left and used, session, watching, blocked and unlimited, and per-kid buttons;
+  - six actions;
+  - live updates over `/api/admin/events`;
+  - reauth when a token is revoked;
+  - nl and de translations.
+
+  It was built by three Sonnet subagents from a contract. The plan and log are in `ha-tellybox/docs/`.
+  - **Open (owner):**
+    - add the PyPI pending publisher for `pytellybox` (workflow `publish.yml`, environment `pypi`), then re-run the failed publish job of the `v0.1.0` tag;
+    - install through HACS and do the checks in `ha-tellybox/docs/plan.md`.
 - **Deferred from the Home Assistant plan** (owner, 2026-09-29: Phase 0 only):
   - F4 typed events (`time_up`, `last_five`, `override_applied`, `download_ready`…) on the admin stream; today an integration has to diff the state;
   - opt-in zeroconf advertisement (`_tellybox._tcp`);

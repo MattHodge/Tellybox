@@ -131,7 +131,7 @@ Plan: `docs/plans/i18n.md`. The foundation was built first, then subagents did t
 
 The owner reordered the phases on 2026-09-28 (PRD "Build order after v1"): kid profiles, SponsorBlock, channel subscriptions, manual splitting, smart splitting, then the Tellybox Cast receiver. The decisions from that session are PRD A-7..A-11, SB-1..SB-6 and CR-1..CR-8.
 
-### 8. Kid profiles (v2), in progress on `step8/profiles`
+### 8. Kid profiles (v2), deployed; device checks open
 "Who's watching" screen, per-profile allowance, usage, continue watching and history, watching together (PR-1..PR-4). There's no PIN, and every profile sees the whole library.
 - Plan `docs/plans/step8-profiles.md`, approved 2026-09-29 (decisions A-12..A-15). Subagent briefs: `docs/plans/step8-handoff.md`.
 - Contract: migration 005 (`profile.avatar`, `profile.sort_order`), `tellybox/avatars.py`, timer stubs, `docs/cast-api.md`, `docs/kid-api.md`.
@@ -141,7 +141,8 @@ The owner reordered the phases on 2026-09-28 (PRD "Build order after v1"): kid p
   - **Kid app (C):** the `#/who` picker (tap to toggle, several kids, go arrow; kids out of time at night and not pickable), eight avatar SVGs, the pick kept per device (day change or 30 min idle asks again, A-12), the corner avatar button, and the sky and time-up reduced for the device's group. With a single profile there is no picker.
   - **Contract notes:** `watching` in the cast state means "in the current episode", not the timer's last group, so a kid who watched earlier can still be deleted. Deleting a profile keeps its watch history rows without a name, and it is the one place where the web service changes position and usage rows (by cascade); the cast service drops the profile on its next tick.
 - Timer scenarios checked by hand: A's session max doesn't block B; together with A out of time, the episode finishes and B alone can start again; blocking a non-watcher continues playback.
-- Next: screenshots review with the owner, then the PR, deploy and real-device checks.
+- Merged as PR #1 (PR numbers restarted in the public repository) and deployed (version 2026.09.29.2). The owner checked the admin pages and the kid app's screens on the devices: fine.
+- **Open:** the playback checks on the real TV, in `docs/plans/step8-device-checks.md`. v2 is done when they pass.
 
 ### Then
 9. SponsorBlock (v3) · 10. Channel subscriptions (v4) · 11. Manual splitting (v5) · 12. Smart splitting (v6) · 13. Tellybox receiver (v7), starting with a spike on the real Chromecast.

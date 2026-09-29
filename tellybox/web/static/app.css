@@ -511,9 +511,151 @@ body {
 }
 .np-offline .icon { width: 62%; height: 62%; translate: 2% 0; }
 
+/* ------------------------------------------------------ who's watching (PR-2) */
+
+/* A round picture: a photo, a built-in avatar or a coloured face. */
+.pic {
+  display: block;
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #9ED8FF;
+  border: var(--line) solid var(--ink);
+  transition: filter var(--fade) ease, opacity var(--fade) ease;
+}
+.pic img,
+.pic svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+/* Corner button on home and show pages: the picked kids, overlapping. */
+.who-btn {
+  --d: 64px;
+  position: fixed;
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  right: max(var(--gutter), env(safe-area-inset-right, 0px));
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  height: var(--d);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform .16s ease;
+}
+.who-btn[data-count="2"] { --d: 58px; }
+.who-btn[data-count="3"],
+.who-btn[data-count="4"] { --d: 52px; }
+.who-btn .pic {
+  width: var(--d);
+  flex: none;
+  box-shadow: 0 4px 0 rgb(30 42 90 / .2);
+}
+.who-btn .pic + .pic { margin-left: calc(var(--d) * -.32); }
+.who-btn:active { transform: scale(.94); }
+.who-btn:focus-visible {
+  outline: 4px solid var(--ink);
+  outline-offset: 6px;
+  border-radius: 40px;
+  box-shadow: 0 0 0 6px var(--yolk);
+}
+.who-btn:focus:not(:focus-visible) { outline: none; }
+@media (max-height: 520px) {
+  .who-btn { --d: 52px; top: 6px; }
+  .who-btn[data-count="2"] { --d: 48px; }
+  .who-btn[data-count="3"],
+  .who-btn[data-count="4"] { --d: 44px; }
+}
+
+.who {
+  --who: clamp(84px, min(26vw, 26vh), 200px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(20px, 4vh, 40px);
+  padding-top: clamp(8px, 3vh, 32px);
+}
+.who-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(14px, 3.5vw, 36px);
+  padding: 8px;
+}
+.who-kid {
+  position: relative;
+  width: var(--who);
+  height: var(--who);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform .16s ease;
+}
+.who-kid .pic {
+  width: 100%;
+  height: 100%;
+  border-width: 6px;
+  box-shadow: 0 6px 0 rgb(30 42 90 / .18);
+  transition: box-shadow .16s ease, filter var(--fade) ease, opacity var(--fade) ease;
+}
+.who-kid:active { transform: scale(.94); }
+.who-kid.is-picked .pic {
+  box-shadow: 0 0 0 4px var(--yolk), 0 0 0 8px var(--ink), 0 6px 0 8px rgb(30 42 90 / .2);
+}
+.who-kid.is-picked { transform: scale(1.04); }
+
+.who-check,
+.who-moon {
+  position: absolute;
+  width: 36%;
+  height: 36%;
+  pointer-events: none;
+  transition: opacity .16s ease, scale .2s cubic-bezier(.3, 1.6, .5, 1);
+}
+.who-check { right: -8%; bottom: -6%; opacity: 0; scale: .3; }
+.who-kid.is-picked .who-check { opacity: 1; scale: 1; }
+.who-moon { right: -6%; top: -6%; opacity: 0; scale: .3; }
+.who-kid.is-night .who-moon { opacity: 1; scale: 1; }
+
+/* Out of time: drawn at night, dimmed, and can't be picked. */
+.who-kid.is-night { cursor: default; }
+.who-kid.is-night:active { transform: none; }
+.who-kid.is-night .pic {
+  opacity: .5;
+  filter: saturate(.2) brightness(.7);
+  box-shadow: none;
+}
+
+.who-go {
+  display: grid;
+  place-items: center;
+  min-height: 108px; /* reserved, so the pictures don't jump when the arrow appears */
+  opacity: 0;
+  translate: 0 12px;
+  pointer-events: none;
+  transition: opacity .2s ease, translate .2s ease;
+}
+.who-go.is-shown { opacity: 1; translate: 0 0; pointer-events: auto; }
+.who-go-btn {
+  --btn: 104px;
+}
+.who-go-btn .icon { width: 56%; height: 56%; }
+
 /* ------------------------------------------------------------ focus ring */
 
 .tile:focus-visible,
+.who-kid:focus-visible,
 .round-btn:focus-visible,
 .big-btn:focus-visible {
   outline: 4px solid var(--ink);
@@ -526,6 +668,7 @@ body {
 .is-night .big-btn:focus-visible { outline-color: var(--star); }
 .tile:focus:not(:focus-visible),
 .round-btn:focus:not(:focus-visible),
+.who-kid:focus:not(:focus-visible),
 .big-btn:focus:not(:focus-visible) { outline: none; }
 
 /* ----------------------------------------------------- reduced motion */

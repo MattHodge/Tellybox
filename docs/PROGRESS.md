@@ -219,9 +219,13 @@ Inserted as step 9 by the owner on 2026-09-29: Phase 0 of the plan "Tellybox × 
   - nl and de translations.
 
   It was built by three Sonnet subagents from a contract. The plan and log are in `ha-tellybox/docs/`.
-  - **Open (owner):**
-    - add the PyPI pending publisher for `pytellybox` (workflow `publish.yml`, environment `pypi`), then re-run the failed publish job of the `v0.1.0` tag;
-    - install through HACS and do the checks in `ha-tellybox/docs/plan.md`.
+  - pytellybox 0.1.0 is on PyPI. The integration is installed through HACS on the owner's Home Assistant and set up (2026-09-29).
+  - **Open (owner):** the remaining checks in `ha-tellybox/docs/plan.md`:
+    - kid devices and time left;
+    - +15 moves the sun, with "via Home Assistant" in the history;
+    - play, and the refusal when time is up;
+    - reauth after a revoke.
+  - Those checks also cover step 9's device checks.
 - **Deferred from the Home Assistant plan** (owner, 2026-09-29: Phase 0 only):
   - F4 typed events (`time_up`, `last_five`, `override_applied`, `download_ready`…) on the admin stream; today an integration has to diff the state;
   - opt-in zeroconf advertisement (`_tellybox._tcp`);

@@ -165,7 +165,7 @@ Three steps are open:
 - Merged as PR #1 (PR numbers restarted in the public repository) and deployed (version 2026.09.29.2). The owner checked the admin pages and the kid app's screens on the devices: fine.
 - **Open:** the playback checks on the real TV, in `docs/plans/step8-device-checks.md`. v2 is done when they pass.
 
-### 9. Admin API for Home Assistant (v2.1), deployed; device checks open
+### 9. Admin API for Home Assistant (v2.1), done
 Inserted as step 9 by the owner on 2026-09-29: Phase 0 of the plan "Tellybox × Home Assistant: upstream features & integration plan". It covers API tokens, the admin state and its event stream, override endpoints, the instance id and `/api/info`. The Home Assistant integration itself lives in separate repositories later.
 - Plan `docs/plans/step9-ha-api.md`, approved 2026-09-29. Subagent briefs: `docs/plans/step9-handoff.md`. Branch `step9/ha-api`.
 - Renumbered: SponsorBlock is now step 10, subscriptions 11, manual splitting 12, and smart splitting 14. The receiver keeps 13, because it's already in progress.
@@ -203,9 +203,7 @@ Inserted as step 9 by the owner on 2026-09-29: Phase 0 of the plan "Tellybox × 
 - Merged as PR #3 and deployed (version 2026.09.29.5). On the server:
   - `/api/info` answers with the instance id, so migration 007 ran;
   - `/api/admin/state` without a token gets a 401.
-- **Open:**
-  - the owner's device checks (`docs/plans/step9-ha-api.md`, "Real-device checks").
-  - v2.1 is done when they pass. The PRD's gate is that it runs at home for a week before the integration builds on it.
+- **Device checks passed (2026-09-29)** through the Home Assistant integration: tokens, state, +15 moving the sun, "via Home Assistant" in the history, and 401/reauth after a revoke.
 - **Home Assistant integration (Phase 1), built and released as v0.1.0 on 2026-09-29, outside this repository.** It lives in two public Apache-2.0 repositories:
   - [`pytellybox`](https://github.com/sandermvanvliet/pytellybox): the async client and a mock Tellybox, 69 tests;
   - [`ha-tellybox`](https://github.com/sandermvanvliet/ha-tellybox): a HACS integration for HA 2026.4 or later, 101 tests, with hassfest and HACS validation green.
@@ -219,13 +217,13 @@ Inserted as step 9 by the owner on 2026-09-29: Phase 0 of the plan "Tellybox × 
   - nl and de translations.
 
   It was built by three Sonnet subagents from a contract. The plan and log are in `ha-tellybox/docs/`.
-  - pytellybox 0.1.0 is on PyPI. The integration is installed through HACS on the owner's Home Assistant and set up (2026-09-29).
-  - **Open (owner):** the remaining checks in `ha-tellybox/docs/plan.md`:
-    - kid devices and time left;
+  - pytellybox 0.1.0 is on PyPI. The integration is installed through HACS on the owner's Home Assistant.
+  - **The owner's checks all passed (2026-09-29):**
+    - the Tellybox device and both kid devices appear;
     - +15 moves the sun, with "via Home Assistant" in the history;
-    - play, and the refusal when time is up;
-    - reauth after a revoke.
-  - Those checks also cover step 9's device checks.
+    - play works, and is refused when time is up;
+    - revoking the token starts reauth.
+  - Phase 1 is done.
 - **Deferred from the Home Assistant plan** (owner, 2026-09-29: Phase 0 only):
   - F4 typed events (`time_up`, `last_five`, `override_applied`, `download_ready`…) on the admin stream; today an integration has to diff the state;
   - opt-in zeroconf advertisement (`_tellybox._tcp`);

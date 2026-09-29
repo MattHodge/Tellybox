@@ -95,15 +95,15 @@ async def test_state(client):
 
 
 async def test_play(client, behaviour):
-    s = await client.play(4)
+    s = await client.play(4, [1, 3])
     assert s["now_playing"] == {"episode_id": 4}
-    assert behaviour["played"] == {"episode_id": 4}
+    assert behaviour["played"] == {"episode_id": 4, "profile_ids": [1, 3]}
 
 
 async def test_play_time_up_raises_with_current_state(client, behaviour):
     behaviour["play"] = 409
     with pytest.raises(TimeUp) as exc:
-        await client.play(4)
+        await client.play(4, [1])
     assert exc.value.state == TIME_UP
 
 
@@ -111,13 +111,13 @@ async def test_play_time_up_raises_with_current_state(client, behaviour):
 async def test_play_server_errors_are_unavailable(client, behaviour, code):
     behaviour["play"] = code
     with pytest.raises(CastUnavailable):
-        await client.play(4)
+        await client.play(4, [1])
 
 
 async def test_play_unknown_episode(client, behaviour):
     behaviour["play"] = 404
     with pytest.raises(CastNotFound):
-        await client.play(4)
+        await client.play(4, [1])
 
 
 async def test_pause_resume(client, behaviour):

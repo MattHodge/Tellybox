@@ -149,3 +149,56 @@ def test_override_outside_window_is_excluded(conn, profile_id):
 
     days = history_days(conn, NOW, AMS, FOUR)
     assert sum(len(d.overrides) for d in days) == 0
+
+
+# --------------------------------------------------------------------------- profiles (step 8, PR-3)
+
+
+@pytest.fixture
+def second_profile(conn) -> int:
+    conn.execute("UPDATE profile SET name = 'Mila', avatar = 'fox' WHERE id = 1")
+    conn.execute("INSERT INTO profile (id, name, avatar, sort_order, created_at) VALUES (2, 'Noor', 'owl', 2, 'x')")
+    return 2
+
+
+def test_episode_lists_who_watched_in_admin_order(conn, episode_id, profile_id, second_profile):
+    started = NOW - timedelta(minutes=10)
+    session_id = store.open_watch_session(conn, episode_id, [second_profile, profile_id], started)
+    store.close_watch_session(conn, session_id, EndReason.FINISHED, NOW, 300.0)
+
+    ep = next(e for d in history_days(conn, NOW, AMS, FOUR) for e in d.episodes)
+    assert [(p.id, p.name, p.avatar) for p in ep.profiles] == [(1, "Mila", "fox"), (2, "Noor", "owl")]
+
+
+def test_profile_filter_keeps_only_sessions_that_profile_was_in(conn, episode_id, profile_id, second_profile):
+    started = NOW - timedelta(minutes=30)
+    open_close(conn, episode_id, profile_id, started, started + timedelta(minutes=5))
+    both = store.open_watch_session(conn, episode_id, [profile_id, second_profile], started + timedelta(minutes=10))
+    store.close_watch_session(conn, both, EndReason.STOPPED, started + timedelta(minutes=15), 300.0)
+
+    def count(pid):
+        return sum(len(d.episodes) for d in history_days(conn, NOW, AMS, FOUR, profile_id=pid))
+
+    assert (count(None), count(profile_id), count(second_profile)) == (2, 2, 1)
+    # the filtered rows still list everyone who watched
+    ep = next(e for d in history_days(conn, NOW, AMS, FOUR, profile_id=second_profile) for e in d.episodes)
+    assert [p.id for p in ep.profiles] == [1, 2]
+
+
+def test_profile_filter_keeps_that_profiles_overrides_and_everyones(conn, profile_id, second_profile):
+    store.log_override(conn, profile_id, date(2026, 9, 28), "extra_minutes", 15, NOW)
+    store.log_override(conn, second_profile, date(2026, 9, 28), "block", 1, NOW)
+    store.log_override(conn, None, date(2026, 9, 28), "stop_now", None, NOW)
+
+    def kinds(pid):
+        return sorted(o.kind for d in history_days(conn, NOW, AMS, FOUR, profile_id=pid) for o in d.overrides)
+
+    assert kinds(None) == ["block", "extra_minutes", "stop_now"]
+    assert kinds(second_profile) == ["block", "stop_now"]
+
+
+def test_override_carries_its_profile(conn, second_profile):
+    store.log_override(conn, second_profile, date(2026, 9, 28), "block", 1, NOW)
+    store.log_override(conn, None, date(2026, 9, 28), "stop_now", None, NOW)
+    overrides = next(d for d in history_days(conn, NOW, AMS, FOUR) if d.overrides).overrides
+    assert [(o.kind, o.profile.name if o.profile else None) for o in overrides] == [("block", "Noor"), ("stop_now", None)]

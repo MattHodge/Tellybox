@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Tellybox VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-28 17:51+0200\n"
+"POT-Creation-Date: 2026-09-29 11:17+0200\n"
 "PO-Revision-Date: 2026-09-28 17:24+0200\n"
 "Last-Translator: Tellybox\n"
 "Language: de\n"
@@ -41,7 +41,7 @@ msgstr "von Eltern gestoppt"
 msgid "time was up"
 msgstr "Zeit war um"
 
-#: tellybox/history.py:31 tellybox/web/admin/templates/dashboard.html:50
+#: tellybox/history.py:31 tellybox/web/admin/templates/dashboard.html:65
 msgid "blocked"
 msgstr "gesperrt"
 
@@ -61,7 +61,7 @@ msgstr "durch Neustart unterbrochen"
 msgid "failed to load"
 msgstr "Laden fehlgeschlagen"
 
-#: tellybox/history.py:106
+#: tellybox/history.py:134
 msgid "deleted episode"
 msgstr "gelöschte Folge"
 
@@ -207,30 +207,30 @@ msgstr "Die Auswahl passt nicht zur Vorschau; lade sie neu."
 msgid "Tick at least one video to add."
 msgstr "Wähle mindestens ein Video aus."
 
-#: tellybox/web/admin/common.py:43 tellybox/web/admin/js_strings.py:42
+#: tellybox/web/admin/common.py:43 tellybox/web/admin/js_strings.py:43
 #, python-format
 msgid "%(hours)s h %(minutes)s min"
 msgstr "%(hours)s Std. %(minutes)s min"
 
-#: tellybox/web/admin/common.py:44 tellybox/web/admin/js_strings.py:43
-#: tellybox/web/admin/templates/history.html:26
+#: tellybox/web/admin/common.py:44 tellybox/web/admin/js_strings.py:44
+#: tellybox/web/admin/templates/history.html:40
 #, python-format
 msgid "%(minutes)s min"
 msgstr "%(minutes)s min"
 
-#: tellybox/web/admin/common.py:55 tellybox/web/admin/js_strings.py:45
+#: tellybox/web/admin/common.py:55 tellybox/web/admin/js_strings.py:46
 msgid "KB"
 msgstr "KB"
 
-#: tellybox/web/admin/common.py:55 tellybox/web/admin/js_strings.py:46
+#: tellybox/web/admin/common.py:55 tellybox/web/admin/js_strings.py:47
 msgid "MB"
 msgstr "MB"
 
-#: tellybox/web/admin/common.py:55 tellybox/web/admin/js_strings.py:47
+#: tellybox/web/admin/common.py:55 tellybox/web/admin/js_strings.py:48
 msgid "GB"
 msgstr "GB"
 
-#: tellybox/web/admin/common.py:65 tellybox/web/admin/js_strings.py:44
+#: tellybox/web/admin/common.py:65 tellybox/web/admin/js_strings.py:45
 #, python-format
 msgid "%(size)s B"
 msgstr "%(size)s B"
@@ -239,19 +239,19 @@ msgstr "%(size)s B"
 msgid "extra_minutes needs a positive value"
 msgstr "extra_minutes braucht einen positiven Wert"
 
-#: tellybox/web/admin/dashboard.py:132
+#: tellybox/web/admin/dashboard.py:136
 msgid "Cast service unreachable; nothing was stopped."
 msgstr "Cast-Dienst nicht erreichbar; nichts wurde gestoppt."
 
-#: tellybox/web/admin/dashboard.py:133
+#: tellybox/web/admin/dashboard.py:137
 msgid "Stopped."
 msgstr "Gestoppt."
 
-#: tellybox/web/admin/dashboard.py:147
+#: tellybox/web/admin/dashboard.py:151
 msgid "Cast service unreachable; the change wasn't applied."
 msgstr "Cast-Dienst nicht erreichbar; die Änderung wurde nicht übernommen."
 
-#: tellybox/web/admin/dashboard.py:148
+#: tellybox/web/admin/dashboard.py:152
 msgid "Done."
 msgstr "Erledigt."
 
@@ -260,7 +260,8 @@ msgid "Added time"
 msgstr "Extrazeit"
 
 #: tellybox/web/admin/history.py:15
-#: tellybox/web/admin/templates/dashboard.html:69
+#: tellybox/web/admin/templates/dashboard.html:70
+#: tellybox/web/admin/templates/dashboard.html:83
 msgid "Unlimited today"
 msgstr "Heute unbegrenzt"
 
@@ -269,11 +270,12 @@ msgid "Block"
 msgstr "Sperren"
 
 #: tellybox/web/admin/history.py:17
-#: tellybox/web/admin/templates/dashboard.html:80
+#: tellybox/web/admin/templates/dashboard.html:72
+#: tellybox/web/admin/templates/dashboard.html:87
 msgid "Stop now"
 msgstr "Jetzt stoppen"
 
-#: tellybox/web/admin/jobs_page.py:44 tellybox/web/admin/js_strings.py:35
+#: tellybox/web/admin/jobs_page.py:44 tellybox/web/admin/js_strings.py:36
 #: tellybox/web/admin/templates/_labels.html:16
 #: tellybox/web/admin/templates/jobs.html:9
 msgid "Update yt-dlp"
@@ -319,7 +321,7 @@ msgid "disconnected"
 msgstr "getrennt"
 
 #: tellybox/web/admin/js_strings.py:21
-#: tellybox/web/admin/templates/dashboard.html:13
+#: tellybox/web/admin/templates/dashboard.html:14
 msgid "unreachable"
 msgstr "nicht erreichbar"
 
@@ -344,80 +346,87 @@ msgid "paused"
 msgstr "pausiert"
 
 #: tellybox/web/admin/js_strings.py:26
-#: tellybox/web/admin/templates/dashboard.html:13
-#: tellybox/web/admin/templates/dashboard.html:104
+#: tellybox/web/admin/templates/dashboard.html:14
+#: tellybox/web/admin/templates/dashboard.html:110
 msgid "unknown"
 msgstr "unbekannt"
 
 #: tellybox/web/admin/js_strings.py:27
-#: tellybox/web/admin/templates/dashboard.html:35
+#: tellybox/web/admin/templates/dashboard.html:37
 msgid "Nothing is playing."
 msgstr "Es läuft nichts."
 
 #: tellybox/web/admin/js_strings.py:28
-#: tellybox/web/admin/templates/dashboard.html:33
+#: tellybox/web/admin/templates/dashboard.html:35
 msgid "Stop"
 msgstr "Stoppen"
 
 #: tellybox/web/admin/js_strings.py:29
-#: tellybox/web/admin/templates/dashboard.html:46
+#: tellybox/web/admin/templates/dashboard.html:32
+#, python-format
+msgid "Watching: %(names)s"
+msgstr "Schaut: %(names)s"
+
+#: tellybox/web/admin/js_strings.py:30
+#: tellybox/web/admin/templates/dashboard.html:61
+#: tellybox/web/admin/templates/profiles.html:15
 #, python-format
 msgid "%(time)s used"
 msgstr "%(time)s verbraucht"
 
-#: tellybox/web/admin/js_strings.py:30
-#: tellybox/web/admin/templates/dashboard.html:46
+#: tellybox/web/admin/js_strings.py:31
+#: tellybox/web/admin/templates/dashboard.html:61
 #, python-format
 msgid "%(time)s left"
 msgstr "%(time)s übrig"
 
-#: tellybox/web/admin/js_strings.py:31
-#: tellybox/web/admin/templates/dashboard.html:106
+#: tellybox/web/admin/js_strings.py:32
+#: tellybox/web/admin/templates/dashboard.html:112
 #, python-format
 msgid "Media on disk: %(size)s"
 msgstr "Medien auf Festplatte: %(size)s"
 
-#: tellybox/web/admin/js_strings.py:32
-#: tellybox/web/admin/templates/dashboard.html:106
+#: tellybox/web/admin/js_strings.py:33
+#: tellybox/web/admin/templates/dashboard.html:112
 #, python-format
 msgid "Free space: %(size)s"
 msgstr "Frei: %(size)s"
 
-#: tellybox/web/admin/js_strings.py:33
-#: tellybox/web/admin/templates/dashboard.html:95
+#: tellybox/web/admin/js_strings.py:34
+#: tellybox/web/admin/templates/dashboard.html:101
 msgid "Nothing downloading."
 msgstr "Es wird nichts heruntergeladen."
 
-#: tellybox/web/admin/js_strings.py:34
+#: tellybox/web/admin/js_strings.py:35
 #: tellybox/web/admin/templates/_labels.html:16
 msgid "download"
 msgstr "Download"
 
-#: tellybox/web/admin/js_strings.py:37
+#: tellybox/web/admin/js_strings.py:38
 #: tellybox/web/admin/templates/_labels.html:11
 msgid "queued"
 msgstr "wartet"
 
-#: tellybox/web/admin/js_strings.py:38
+#: tellybox/web/admin/js_strings.py:39
 #: tellybox/web/admin/templates/_labels.html:11
 msgid "downloading"
 msgstr "lädt herunter"
 
-#: tellybox/web/admin/js_strings.py:39
+#: tellybox/web/admin/js_strings.py:40
 #: tellybox/web/admin/templates/_labels.html:11
 msgid "processing"
 msgstr "wird verarbeitet"
 
-#: tellybox/web/admin/js_strings.py:40
+#: tellybox/web/admin/js_strings.py:41
 #: tellybox/web/admin/templates/_labels.html:12
 msgid "ready"
 msgstr "bereit"
 
-#: tellybox/web/admin/js_strings.py:48
+#: tellybox/web/admin/js_strings.py:49
 msgid "TB"
 msgstr "TB"
 
-#: tellybox/web/admin/js_strings.py:53
+#: tellybox/web/admin/js_strings.py:54
 #: tellybox/web/admin/templates/add.html:116
 #, python-format
 msgid "Add %(num)d video"
@@ -425,8 +434,8 @@ msgid_plural "Add %(num)d videos"
 msgstr[0] "%(num)d Video hinzufügen"
 msgstr[1] "%(num)d Videos hinzufügen"
 
-#: tellybox/web/admin/js_strings.py:54
-#: tellybox/web/admin/templates/dashboard.html:89
+#: tellybox/web/admin/js_strings.py:55
+#: tellybox/web/admin/templates/dashboard.html:95
 #, python-format
 msgid "%(num)d failed job"
 msgid_plural "%(num)d failed jobs"
@@ -481,6 +490,7 @@ msgid "Renamed."
 msgstr "Umbenannt."
 
 #: tellybox/web/admin/library_pages.py:217
+#: tellybox/web/admin/profiles_page.py:97
 msgid "Saved."
 msgstr "Gespeichert."
 
@@ -544,6 +554,83 @@ msgstr "Vorschaubild aktualisiert."
 msgid "This episode's video file is missing."
 msgstr "Die Videodatei dieser Folge fehlt."
 
+#: tellybox/web/admin/profiles_page.py:27
+msgid "Fox"
+msgstr "Fuchs"
+
+#: tellybox/web/admin/profiles_page.py:27
+msgid "Bear"
+msgstr "Bär"
+
+#: tellybox/web/admin/profiles_page.py:27
+msgid "Rabbit"
+msgstr "Hase"
+
+#: tellybox/web/admin/profiles_page.py:27
+msgid "Owl"
+msgstr "Eule"
+
+#: tellybox/web/admin/profiles_page.py:28
+msgid "Cat"
+msgstr "Katze"
+
+#: tellybox/web/admin/profiles_page.py:28
+msgid "Dog"
+msgstr "Hund"
+
+#: tellybox/web/admin/profiles_page.py:28
+msgid "Frog"
+msgstr "Frosch"
+
+#: tellybox/web/admin/profiles_page.py:28
+msgid "Penguin"
+msgstr "Pinguin"
+
+#: tellybox/web/admin/profiles_page.py:66
+msgid "Enter a name."
+msgstr "Gib einen Namen ein."
+
+#: tellybox/web/admin/profiles_page.py:68
+#, python-format
+msgid "The name can be at most %(max)d characters."
+msgstr "Der Name darf höchstens %(max)d Zeichen lang sein."
+
+#: tellybox/web/admin/profiles_page.py:70
+msgid "Choose one of the pictures."
+msgstr "Wähle eines der Bilder."
+
+#: tellybox/web/admin/profiles_page.py:88
+msgid "Profile added."
+msgstr "Profil hinzugefügt."
+
+#: tellybox/web/admin/profiles_page.py:103
+msgid "Choose up or down."
+msgstr "Wähle nach oben oder nach unten."
+
+#: tellybox/web/admin/profiles_page.py:121
+msgid "Photo updated."
+msgstr "Foto aktualisiert."
+
+#: tellybox/web/admin/profiles_page.py:127
+msgid "Photo removed."
+msgstr "Foto entfernt."
+
+#: tellybox/web/admin/profiles_page.py:133
+msgid "This is the last profile; it can't be deleted."
+msgstr "Das ist das letzte Profil; du kannst es nicht löschen."
+
+#: tellybox/web/admin/profiles_page.py:136
+msgid "Cast service unreachable; can't tell whether this profile is watching."
+msgstr "Cast-Dienst nicht erreichbar; ich kann nicht prüfen, ob dieses Profil gerade schaut."
+
+#: tellybox/web/admin/profiles_page.py:138
+msgid "This profile is watching right now. Stop the TV first."
+msgstr "Dieses Profil schaut gerade. Stoppe zuerst den Fernseher."
+
+#: tellybox/web/admin/profiles_page.py:140
+msgid "Profile deleted."
+msgstr "Profil gelöscht."
+
 #: tellybox/web/admin/settings_page.py:26
 msgid "Enter a whole number of minutes."
 msgstr "Gib eine ganze Zahl an Minuten ein."
@@ -553,46 +640,47 @@ msgstr "Gib eine ganze Zahl an Minuten ein."
 msgid "Enter a number between %(lo)d and %(hi)d."
 msgstr "Gib eine Zahl zwischen %(lo)d und %(hi)d ein."
 
-#: tellybox/web/admin/settings_page.py:96
+#: tellybox/web/admin/settings_page.py:97
 msgid "Choose a counting mode."
 msgstr "Wähle eine Zählweise."
 
-#: tellybox/web/admin/settings_page.py:105
+#: tellybox/web/admin/settings_page.py:106
 msgid "Enter a time as HH:MM."
 msgstr "Gib eine Uhrzeit als HH:MM ein."
 
-#: tellybox/web/admin/settings_page.py:127
+#: tellybox/web/admin/settings_page.py:128
 msgid "Saved. The TV picks this up within 15 s."
 msgstr "Gespeichert. Der Fernseher übernimmt das innerhalb von 15 s."
 
-#: tellybox/web/admin/settings_page.py:134
+#: tellybox/web/admin/settings_page.py:135
 msgid "Cast service unreachable; couldn't search for devices."
 msgstr "Cast-Dienst nicht erreichbar; Gerätesuche nicht möglich."
 
-#: tellybox/web/admin/settings_page.py:137
+#: tellybox/web/admin/settings_page.py:138
 msgid "No Chromecasts found."
 msgstr "Keine Chromecasts gefunden."
 
-#: tellybox/web/admin/settings_page.py:139
+#: tellybox/web/admin/settings_page.py:140
 #, python-format
 msgid "Found: %(names)s."
 msgstr "Gefunden: %(names)s."
 
-#: tellybox/web/admin/settings_page.py:146
+#: tellybox/web/admin/settings_page.py:147
 msgid "Unknown device; search again."
 msgstr "Unbekanntes Gerät; such noch einmal."
 
-#: tellybox/web/admin/settings_page.py:148
+#: tellybox/web/admin/settings_page.py:149
 msgid "Cast service unreachable; nothing was changed."
 msgstr "Cast-Dienst nicht erreichbar; nichts wurde geändert."
 
-#: tellybox/web/admin/settings_page.py:149
+#: tellybox/web/admin/settings_page.py:150
 msgid "Chromecast selected."
 msgstr "Chromecast ausgewählt."
 
 #: tellybox/web/admin/templates/add.html:3
 #: tellybox/web/admin/templates/add.html:63
 #: tellybox/web/admin/templates/base.html:17
+#: tellybox/web/admin/templates/profiles.html:65
 msgid "Add"
 msgstr "Hinzufügen"
 
@@ -718,119 +806,149 @@ msgid "Admin"
 msgstr "Verwaltung"
 
 #: tellybox/web/admin/templates/base.html:17
-#: tellybox/web/admin/templates/dashboard.html:3
+#: tellybox/web/admin/templates/dashboard.html:4
 msgid "Now"
 msgstr "Jetzt"
 
 #: tellybox/web/admin/templates/base.html:18
-#: tellybox/web/admin/templates/settings.html:2
-#: tellybox/web/admin/templates/settings.html:4
+#: tellybox/web/admin/templates/profiles.html:3
+#: tellybox/web/admin/templates/profiles.html:5
+msgid "Profiles"
+msgstr "Profile"
+
+#: tellybox/web/admin/templates/base.html:19
+#: tellybox/web/admin/templates/settings.html:3
+#: tellybox/web/admin/templates/settings.html:5
 msgid "Settings"
 msgstr "Einstellungen"
 
-#: tellybox/web/admin/templates/base.html:19
-#: tellybox/web/admin/templates/history.html:2
-#: tellybox/web/admin/templates/history.html:4
+#: tellybox/web/admin/templates/base.html:20
+#: tellybox/web/admin/templates/history.html:3
+#: tellybox/web/admin/templates/history.html:5
 msgid "History"
 msgstr "Verlauf"
 
-#: tellybox/web/admin/templates/base.html:22
+#: tellybox/web/admin/templates/base.html:23
 msgid "Sign out"
 msgstr "Abmelden"
 
-#: tellybox/web/admin/templates/dashboard.html:8
+#: tellybox/web/admin/templates/dashboard.html:9
 msgid "What's on the TV"
 msgstr "Was läuft im Fernsehen"
 
-#: tellybox/web/admin/templates/dashboard.html:16
+#: tellybox/web/admin/templates/dashboard.html:17
 msgid "Cast service unreachable"
 msgstr "Cast-Dienst nicht erreichbar"
 
-#: tellybox/web/admin/templates/dashboard.html:18
+#: tellybox/web/admin/templates/dashboard.html:19
 msgid "Time's up — finishing this episode"
 msgstr "Zeit ist um — diese Folge läuft noch zu Ende"
 
-#: tellybox/web/admin/templates/dashboard.html:20
+#: tellybox/web/admin/templates/dashboard.html:21
 msgid "Time's up"
 msgstr "Zeit ist um"
 
-#: tellybox/web/admin/templates/dashboard.html:49
+#: tellybox/web/admin/templates/dashboard.html:58
+#: tellybox/web/admin/templates/profiles.html:16
+msgid "watching"
+msgstr "schaut"
+
+#: tellybox/web/admin/templates/dashboard.html:64
 msgid "unlimited today"
 msgstr "heute unbegrenzt"
 
-#: tellybox/web/admin/templates/dashboard.html:57
-#: tellybox/web/admin/templates/dashboard.html:63
-#: tellybox/web/admin/templates/history.html:40
+#: tellybox/web/admin/templates/dashboard.html:68
+#: tellybox/web/admin/templates/dashboard.html:69
+#: tellybox/web/admin/templates/dashboard.html:81
+#: tellybox/web/admin/templates/dashboard.html:82
+#: tellybox/web/admin/templates/history.html:55
 #, python-format
 msgid "+%(minutes)s min"
 msgstr "+%(minutes)s min"
 
-#: tellybox/web/admin/templates/dashboard.html:69
+#: tellybox/web/admin/templates/dashboard.html:70
+#: tellybox/web/admin/templates/dashboard.html:84
 msgid "Turn off unlimited"
 msgstr "Unbegrenzt beenden"
 
-#: tellybox/web/admin/templates/dashboard.html:75
-msgid "Unblock"
-msgstr "Entsperren"
-
-#: tellybox/web/admin/templates/dashboard.html:75
+#: tellybox/web/admin/templates/dashboard.html:71
+#: tellybox/web/admin/templates/dashboard.html:85
 msgid "Block today"
 msgstr "Heute sperren"
 
-#: tellybox/web/admin/templates/dashboard.html:87
+#: tellybox/web/admin/templates/dashboard.html:71
+#: tellybox/web/admin/templates/dashboard.html:86
+msgid "Unblock"
+msgstr "Entsperren"
+
+#: tellybox/web/admin/templates/dashboard.html:79
+#: tellybox/web/admin/templates/history.html:12
+msgid "Everyone"
+msgstr "Alle"
+
+#: tellybox/web/admin/templates/dashboard.html:93
 msgid "Downloads & jobs"
 msgstr "Downloads und Aufgaben"
 
-#: tellybox/web/admin/templates/dashboard.html:98
+#: tellybox/web/admin/templates/dashboard.html:104
 msgid "See all jobs"
 msgstr "Alle Aufgaben"
 
-#: tellybox/web/admin/templates/dashboard.html:102
+#: tellybox/web/admin/templates/dashboard.html:108
 msgid "System"
 msgstr "System"
 
-#: tellybox/web/admin/templates/history.html:5
+#: tellybox/web/admin/templates/history.html:6
 msgid "The last 21 days."
 msgstr "Die letzten 21 Tage."
 
-#: tellybox/web/admin/templates/history.html:8
-msgid "Nothing watched yet."
-msgstr "Noch nichts geschaut."
-
-#: tellybox/web/admin/templates/history.html:18
-msgid "Episode"
-msgstr "Folge"
-
-#: tellybox/web/admin/templates/history.html:18
-msgid "Start"
-msgstr "Beginn"
-
-#: tellybox/web/admin/templates/history.html:18
-msgid "End"
-msgstr "Ende"
-
-#: tellybox/web/admin/templates/history.html:18
-msgid "Minutes"
-msgstr "Minuten"
-
-#: tellybox/web/admin/templates/history.html:18
-msgid "Ended"
-msgstr "Grund"
-
-#: tellybox/web/admin/templates/history.html:18
+#: tellybox/web/admin/templates/history.html:10
+#: tellybox/web/admin/templates/history.html:31
 #: tellybox/web/admin/templates/show.html:9
 msgid "Show"
 msgstr "Serie"
 
-#: tellybox/web/admin/templates/history.html:35
+#: tellybox/web/admin/templates/history.html:16
+msgid "Filter"
+msgstr "Filtern"
+
+#: tellybox/web/admin/templates/history.html:21
+msgid "Nothing watched yet."
+msgstr "Noch nichts geschaut."
+
+#: tellybox/web/admin/templates/history.html:31
+msgid "Episode"
+msgstr "Folge"
+
+#: tellybox/web/admin/templates/history.html:31
+msgid "Who"
+msgstr "Wer"
+
+#: tellybox/web/admin/templates/history.html:31
+msgid "Start"
+msgstr "Beginn"
+
+#: tellybox/web/admin/templates/history.html:31
+msgid "End"
+msgstr "Ende"
+
+#: tellybox/web/admin/templates/history.html:31
+msgid "Minutes"
+msgstr "Minuten"
+
+#: tellybox/web/admin/templates/history.html:31
+msgid "Ended"
+msgstr "Grund"
+
+#: tellybox/web/admin/templates/history.html:49
 msgid "Overrides"
 msgstr "Eingriffe"
 
-#: tellybox/web/admin/templates/history.html:40
+#: tellybox/web/admin/templates/history.html:55
 msgid "on"
 msgstr "an"
 
-#: tellybox/web/admin/templates/history.html:40
+#: tellybox/web/admin/templates/history.html:55
 msgid "off"
 msgstr "aus"
 
@@ -918,6 +1036,8 @@ msgid "New show"
 msgstr "Neue Serie"
 
 #: tellybox/web/admin/templates/library.html:37
+#: tellybox/web/admin/templates/profiles.html:22
+#: tellybox/web/admin/templates/profiles.html:61
 msgid "Name"
 msgstr "Name"
 
@@ -1013,67 +1133,111 @@ msgstr "Tellybox-Verwaltung"
 msgid "Password"
 msgstr "Passwort"
 
-#: tellybox/web/admin/templates/settings.html:11
-msgid "Daily allowance (minutes)"
-msgstr "Fernsehzeit pro Tag (Minuten)"
+#: tellybox/web/admin/templates/profiles.html:6
+msgid "The kids who watch. Each has their own time, continue watching and viewing session. Allowance and session length are in Settings."
+msgstr "Die Kinder, die schauen. Jedes hat eigene Zeit, eigene Weiterschauen-Liste und eigene Schausitzung. Zeitkontingent und Sitzungslänge findest du unter Einstellungen."
 
-#: tellybox/web/admin/templates/settings.html:19
-msgid "Counting mode"
-msgstr "Zählweise"
+#: tellybox/web/admin/templates/profiles.html:25
+#: tellybox/web/admin/templates/profiles.html:64
+msgid "No picture"
+msgstr "Kein Bild"
 
-#: tellybox/web/admin/templates/settings.html:22
-msgid "Count playing time only"
-msgstr "Nur Abspielzeit zählen"
-
-#: tellybox/web/admin/templates/settings.html:25
-msgid "Count clock time"
-msgstr "Verstrichene Zeit zählen (auch Pausen)"
-
-#: tellybox/web/admin/templates/settings.html:33
-msgid "Maximum session length (minutes)"
-msgstr "Maximale Sitzungsdauer (Minuten)"
-
-#: tellybox/web/admin/templates/settings.html:45
-msgid "Household"
-msgstr "Haushalt"
-
-#: tellybox/web/admin/templates/settings.html:47
-msgid "Reset time (local, HH:MM)"
-msgstr "Neuer Tag beginnt um (Ortszeit, HH:MM)"
-
-#: tellybox/web/admin/templates/settings.html:52
-msgid "Grace cap (minutes, 0–60)"
-msgstr "Maximale Nachspielzeit (Minuten, 0–60)"
-
-#: tellybox/web/admin/templates/settings.html:57
-msgid "Session break (minutes, 1–240)"
-msgstr "Sitzungsende nach Pause (Minuten, 1–240)"
-
-#: tellybox/web/admin/templates/settings.html:65
+#: tellybox/web/admin/templates/profiles.html:26
+#: tellybox/web/admin/templates/settings.html:66
 msgid "Save"
 msgstr "Speichern"
 
-#: tellybox/web/admin/templates/settings.html:73
+#: tellybox/web/admin/templates/profiles.html:31
+msgid "Photo"
+msgstr "Foto"
+
+#: tellybox/web/admin/templates/profiles.html:32
+msgid "Upload photo"
+msgstr "Foto hochladen"
+
+#: tellybox/web/admin/templates/profiles.html:36
+msgid "Remove photo"
+msgstr "Foto entfernen"
+
+#: tellybox/web/admin/templates/profiles.html:44
+#: tellybox/web/admin/templates/show.html:90
+msgid "Move up"
+msgstr "Nach oben"
+
+#: tellybox/web/admin/templates/profiles.html:48
+#: tellybox/web/admin/templates/show.html:94
+msgid "Move down"
+msgstr "Nach unten"
+
+#: tellybox/web/admin/templates/profiles.html:51
+msgid "Delete this profile with its continue watching and history?"
+msgstr "Dieses Profil mit Weiterschauen-Liste und Verlauf löschen?"
+
+#: tellybox/web/admin/templates/profiles.html:52
+msgid "Delete profile"
+msgstr "Profil löschen"
+
+#: tellybox/web/admin/templates/profiles.html:59
+msgid "Add a profile"
+msgstr "Profil hinzufügen"
+
+#: tellybox/web/admin/templates/settings.html:12
+msgid "Daily allowance (minutes)"
+msgstr "Fernsehzeit pro Tag (Minuten)"
+
+#: tellybox/web/admin/templates/settings.html:20
+msgid "Counting mode"
+msgstr "Zählweise"
+
+#: tellybox/web/admin/templates/settings.html:23
+msgid "Count playing time only"
+msgstr "Nur Abspielzeit zählen"
+
+#: tellybox/web/admin/templates/settings.html:26
+msgid "Count clock time"
+msgstr "Verstrichene Zeit zählen (auch Pausen)"
+
+#: tellybox/web/admin/templates/settings.html:34
+msgid "Maximum session length (minutes)"
+msgstr "Maximale Sitzungsdauer (Minuten)"
+
+#: tellybox/web/admin/templates/settings.html:46
+msgid "Household"
+msgstr "Haushalt"
+
+#: tellybox/web/admin/templates/settings.html:48
+msgid "Reset time (local, HH:MM)"
+msgstr "Neuer Tag beginnt um (Ortszeit, HH:MM)"
+
+#: tellybox/web/admin/templates/settings.html:53
+msgid "Grace cap (minutes, 0–60)"
+msgstr "Maximale Nachspielzeit (Minuten, 0–60)"
+
+#: tellybox/web/admin/templates/settings.html:58
+msgid "Session break (minutes, 1–240)"
+msgstr "Sitzungsende nach Pause (Minuten, 1–240)"
+
+#: tellybox/web/admin/templates/settings.html:74
 msgid "Device"
 msgstr "Gerät"
 
-#: tellybox/web/admin/templates/settings.html:73
+#: tellybox/web/admin/templates/settings.html:74
 msgid "Address"
 msgstr "Adresse"
 
-#: tellybox/web/admin/templates/settings.html:77
+#: tellybox/web/admin/templates/settings.html:78
 msgid "selected"
 msgstr "ausgewählt"
 
-#: tellybox/web/admin/templates/settings.html:83
+#: tellybox/web/admin/templates/settings.html:84
 msgid "Use this one"
 msgstr "Dieses verwenden"
 
-#: tellybox/web/admin/templates/settings.html:92
+#: tellybox/web/admin/templates/settings.html:93
 msgid "No Chromecasts known yet."
 msgstr "Noch keine Chromecasts bekannt."
 
-#: tellybox/web/admin/templates/settings.html:95
+#: tellybox/web/admin/templates/settings.html:96
 msgid "Search"
 msgstr "Suchen"
 
@@ -1153,14 +1317,6 @@ msgstr "Folgen"
 #: tellybox/web/admin/templates/show.html:75
 msgid "No episodes in this show."
 msgstr "Keine Folgen in dieser Serie."
-
-#: tellybox/web/admin/templates/show.html:90
-msgid "Move up"
-msgstr "Nach oben"
-
-#: tellybox/web/admin/templates/show.html:94
-msgid "Move down"
-msgstr "Nach unten"
 
 #: tellybox/web/admin/templates/show.html:100
 msgid "Edit episode"

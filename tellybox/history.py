@@ -37,6 +37,14 @@ END_REASON_LABELS: dict[str, str] = {
 
 
 @dataclass(frozen=True)
+class HistoryProfile:
+    id: int
+    name: str
+    avatar: str | None
+    picture_path: str | None
+
+
+@dataclass(frozen=True)
 class HistoryEpisode:
     watch_session_id: int
     episode_id: int | None
@@ -46,14 +54,16 @@ class HistoryEpisode:
     ended_at: datetime | None
     minutes: int  # seconds_counted, rounded
     end_reason_label: str  # WATCHING_NOW_LABEL for an open session
+    profiles: tuple[HistoryProfile, ...] = ()  # who watched, in the admin's order
 
 
 @dataclass(frozen=True)
 class HistoryOverride:
-    profile_id: int | None
+    profile_id: int | None  # None = everyone
     kind: str
     value: int | None
     created_at: datetime
+    profile: HistoryProfile | None = None  # None = everyone (or a profile that has been deleted)
 
 
 @dataclass(frozen=True)
@@ -72,10 +82,25 @@ def _end_reason_label(end_reason: str | None, ended_at: datetime | None) -> str:
     return _(label) if label else end_reason
 
 
+def _profiles(conn: sqlite3.Connection) -> dict[int, HistoryProfile]:
+    rows = conn.execute("SELECT id, name, avatar, picture_path FROM profile ORDER BY sort_order, id").fetchall()
+    return {r["id"]: HistoryProfile(r["id"], r["name"], r["avatar"], r["picture_path"]) for r in rows}
+
+
 def history_days(
-    conn: sqlite3.Connection, now: datetime, tz: ZoneInfo, reset_time: time, *, days: int = HISTORY_DAYS
+    conn: sqlite3.Connection, now: datetime, tz: ZoneInfo, reset_time: time, *, days: int = HISTORY_DAYS,
+    profile_id: int | None = None,
 ) -> list[HistoryDay]:
-    """The last `days` watch days (AD-4), newest first. Days with nothing in them are included empty."""
+    """The last `days` watch days (AD-4), newest first. Days with nothing in them are included empty.
+
+    `profile_id` keeps only the sessions that profile was part of and its overrides (plus those
+    for everyone); each session still lists everyone who watched.
+    """
+    profiles = _profiles(conn)
+    order = {pid: i for i, pid in enumerate(profiles)}
+    watchers: dict[int, list[int]] = {}
+    for r in conn.execute("SELECT watch_session_id, profile_id FROM watch_session_profile"):
+        watchers.setdefault(r["watch_session_id"], []).append(r["profile_id"])
     latest_day = day_for(now, reset_time, tz)
     by_day: dict[date, HistoryDay] = {
         latest_day - timedelta(days=i): HistoryDay(day=latest_day - timedelta(days=i)) for i in range(days)
@@ -94,6 +119,9 @@ def history_days(
         (to_db(now - timedelta(days=days + 2)),),
     ).fetchall()
     for r in rows:
+        members = sorted((p for p in watchers.get(r["id"], []) if p in profiles), key=order.__getitem__)
+        if profile_id is not None and profile_id not in members:
+            continue
         started_at = from_db(r["started_at"])
         d = day_for(started_at, reset_time, tz)
         bucket = by_day.get(d)
@@ -109,6 +137,7 @@ def history_days(
             ended_at=ended_at,
             minutes=round(r["seconds_counted"] / 60),
             end_reason_label=_end_reason_label(r["end_reason"], ended_at),
+            profiles=tuple(profiles[p] for p in members),
         ))
 
     orows = conn.execute(
@@ -116,12 +145,15 @@ def history_days(
         (earliest_day.isoformat(),),
     ).fetchall()
     for r in orows:
+        if profile_id is not None and r["profile_id"] not in (None, profile_id):
+            continue
         d = date.fromisoformat(r["day"])
         bucket = by_day.get(d)
         if bucket is None:
             continue
         bucket.overrides.append(HistoryOverride(
             profile_id=r["profile_id"], kind=r["kind"], value=r["value"], created_at=from_db(r["created_at"]),
+            profile=profiles.get(r["profile_id"]),
         ))
 
     return [by_day[d] for d in sorted(by_day, reverse=True)]

@@ -52,7 +52,7 @@ async def test_state(env):
 
 async def test_play_pause_stop(env):
     c = env["client"]
-    r = await c.post("/play", json={"episode_id": env["episode"]})
+    r = await c.post("/play", json={"episode_id": env["episode"], "profile_ids": [1]})
     assert r.status_code == 200
     assert r.json()["now_playing"]["episode_id"] == env["episode"]
     assert (await c.post("/pause")).status_code == 200
@@ -61,14 +61,14 @@ async def test_play_pause_stop(env):
 
 
 async def test_play_unknown_episode(env):
-    r = await env["client"].post("/play", json={"episode_id": 999})
+    r = await env["client"].post("/play", json={"episode_id": 999, "profile_ids": [1]})
     assert r.status_code == 404
 
 
 async def test_play_refused_when_blocked(env):  # KA-9, WT-7
     c = env["client"]
     assert (await c.post("/overrides", json={"kind": "block"})).status_code == 200
-    r = await c.post("/play", json={"episode_id": env["episode"]})
+    r = await c.post("/play", json={"episode_id": env["episode"], "profile_ids": [1]})
     assert r.status_code == 409
     assert r.json()["detail"]["reason"] == "blocked"
 
@@ -84,7 +84,7 @@ async def test_override_validation(env):
 
 async def test_command_error_is_502(env):
     env["fake"].fail_next_command = True
-    r = await env["client"].post("/play", json={"episode_id": env["episode"]})
+    r = await env["client"].post("/play", json={"episode_id": env["episode"], "profile_ids": [1]})
     assert r.status_code == 502
 
 
@@ -98,3 +98,38 @@ async def test_devices_listed_and_selected(env):  # PB-1
     assert store.selected_device(env["conn"]).uuid == OTHER.uuid
     assert env["ctrl"].device is env["made"][0]
     await env["ctrl"].stop_service()
+
+
+def add_profile(conn):
+    conn.execute("INSERT INTO profile (name, created_at) VALUES ('B', '2026-09-28T00:00:00.000Z')")
+
+
+async def test_play_with_a_group(env):  # PR-2
+    add_profile(env["conn"])
+    r = await env["client"].post("/play", json={"episode_id": env["episode"], "profile_ids": [2, 1]})
+    assert r.status_code == 200
+    state = r.json()
+    assert state["now_playing"]["profile_ids"] == [1, 2]
+    profiles = state["timer"]["profiles"]
+    assert [p["profile_id"] for p in profiles] == [1, 2]
+    assert all(p["watching"] and p["can_start"] and p["reason"] is None for p in profiles)
+    assert all(p["remaining_s"] is not None for p in profiles)
+
+
+@pytest.mark.parametrize("ids", [[], list(range(1, 22)), [1, 99], "1", None])
+async def test_play_validates_profile_ids(env, ids):
+    body = {"episode_id": env["episode"]} if ids is None else {"episode_id": env["episode"], "profile_ids": ids}
+    r = await env["client"].post("/play", json=body)
+    assert r.status_code == 422
+    assert env["ctrl"].current is None
+
+
+async def test_play_refused_for_a_group_with_a_blocked_member(env):  # PR-4
+    c = env["client"]
+    add_profile(env["conn"])
+    assert (await c.post("/overrides", json={"kind": "block", "profile_id": 2})).status_code == 200
+    r = await c.post("/play", json={"episode_id": env["episode"], "profile_ids": [1, 2]})
+    assert r.status_code == 409 and r.json()["detail"]["reason"] == "blocked"
+    by_id = {p["profile_id"]: p for p in (await c.get("/state")).json()["timer"]["profiles"]}
+    assert by_id[2]["can_start"] is False and by_id[2]["reason"] == "blocked"
+    assert (await c.post("/play", json={"episode_id": env["episode"], "profile_ids": [1]})).status_code == 200

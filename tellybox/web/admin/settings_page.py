@@ -42,7 +42,8 @@ def create_router(ctx: AdminContext) -> APIRouter:
 
     def profiles() -> list[sqlite3.Row]:
         return conn.execute(
-            "SELECT id, name, daily_allowance_min, counting_mode, max_session_min FROM profile ORDER BY id"
+            "SELECT id, name, avatar, picture_path, daily_allowance_min, counting_mode, max_session_min"
+            " FROM profile ORDER BY sort_order, id"
         ).fetchall()
 
     def global_settings() -> sqlite3.Row:

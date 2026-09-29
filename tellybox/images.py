@@ -124,3 +124,8 @@ def save_show_artwork(media_dir: Path, show_id: int, data: bytes) -> str:
 
 def save_episode_thumbnail(media_dir: Path, episode_id: int, data: bytes) -> str:
     return _save(media_dir, "thumbs", _fresh_name("episode", episode_id), data)
+
+
+def save_profile_photo(media_dir: Path, profile_id: int, data: bytes) -> str:
+    """A kid profile's photo (PR-1), under media/profiles/."""
+    return _save(media_dir, "profiles", _fresh_name("profile", profile_id), data)

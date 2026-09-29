@@ -27,10 +27,29 @@ export const icons = {
       `<path d="M14 25q3.5 3 7 0M27 25q3.5 3 7 0"/><path d="M16 42h16"/>`,
   ),
 
+  // Big arrow for the "go" button on the who's-watching screen.
+  go: svg(`<path d="M9 24h29"/><path d="m26 11 13 13-13 13"/>`),
+
+  // Check on a green disc: this kid is picked.
+  check: `<svg class="badge-svg" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><circle cx="24" cy="24" r="20" fill="#4CC36B" stroke="#1E2A5A" stroke-width="4.5"/><path d="m14 25 7 7 13-15" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+
+  // Small moon on a night-blue disc: this kid's time is up for today.
+  moonBadge: `<svg class="badge-svg" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><circle cx="24" cy="24" r="20" fill="#232B63" stroke="#FFF3B0" stroke-width="3.5"/><path d="M27 12a12.5 12.5 0 1 0 8 19 10.5 10.5 0 0 1-8-19Z" fill="#FFF3B0"/></svg>`,
+
   star: `<svg class="badge-svg" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><path d="M24 5.5l5.4 11.2 12.3 1.6-9 8.6 2.3 12.2L24 33.3l-11 5.8 2.3-12.2-9-8.6 12.3-1.6Z" fill="#FFC93C" stroke="#1E2A5A" stroke-width="4.5" stroke-linejoin="round"/></svg>`,
 
   next: `<svg class="badge-svg" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><circle cx="24" cy="24" r="19" fill="#FFC93C" stroke="#1E2A5A" stroke-width="4.5"/><path d="M20 15.5v17l13-8.5Z" fill="#1E2A5A" stroke="#1E2A5A" stroke-width="3" stroke-linejoin="round"/></svg>`,
 };
+
+// Picture for a profile without a photo or a built-in avatar: a friendly face in a colour.
+export function placeholderFace(color) {
+  return `<svg class="placeholder" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+    <rect width="100" height="100" fill="${color}"/>
+    <circle cx="50" cy="52" r="30" fill="#fff" fill-opacity=".6"/>
+    <g fill="#1E2A5A"><circle cx="39" cy="47" r="4.5"/><circle cx="61" cy="47" r="4.5"/></g>
+    <path d="M38 61q12 11 24 0" fill="none" stroke="#1E2A5A" stroke-width="4.5" stroke-linecap="round"/>
+  </svg>`;
+}
 
 // Placeholder TV in the show's colour, drawn when an image is missing.
 export function placeholderTv(color) {

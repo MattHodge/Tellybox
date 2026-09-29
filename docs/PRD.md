@@ -327,6 +327,10 @@ The biggest risks are external: YouTube changes that break yt-dlp, and the agein
 | A-9 | Subscription uploads always go through the approval inbox; there is no auto-approve (owner, 2026-09-28). |
 | A-10 | SponsorBlock segments are removed from the file at download rather than skipped during playback; default categories are sponsor, self-promotion and interaction reminders (owner, 2026-09-28). |
 | A-11 | The Tellybox receiver (v7) covers time left on the TV, the time's-up screen, loading and idle screens and the up-next card; the Default Media Receiver stays as an automatic fallback (owner, 2026-09-28). |
+| A-12 | Each device remembers who's watching; it asks again after the daily reset or 30 minutes without use, and an avatar button switches kids at any time (owner, 2026-09-29). |
+| A-13 | The maximum session length (WT-3) applies per profile: each kid has their own viewing session and break (owner, 2026-09-29). |
+| A-14 | A profile picture is a built-in avatar or an uploaded photo (owner, 2026-09-29). |
+| A-15 | The v1 household profile becomes the first kid's profile (renamed by the admin) and keeps its history; profiles can be deleted, except the last one (owner, 2026-09-29). |
 
 ### Open questions
 

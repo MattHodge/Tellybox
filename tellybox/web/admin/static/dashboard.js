@@ -31,7 +31,7 @@ const JOB_STATUS_LABELS = {
 };
 const JOB_TYPE_LABELS = { download: t("download"), update_ytdlp: t("Update yt-dlp") };
 
-// Titles come from YouTube: never put them into markup unescaped.
+// Titles come from YouTube and profile names from the admin: never put them into markup unescaped.
 function esc(value) {
   return String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 }
@@ -84,6 +84,12 @@ function updateConnection(state) {
   if (device) device.textContent = state && state.device ? ` — ${state.device.name}` : "";
 }
 
+// "Mila, Noor": the names of the profiles in the current pick, in the admin's order.
+function watcherNames(np) {
+  const ids = new Set((np && np.profile_ids) || []);
+  return profilesMeta().filter((m) => ids.has(m.id)).map((m) => m.name);
+}
+
 function updateNowPlaying(state) {
   const block = document.getElementById("now-playing-content");
   if (!block) return;
@@ -92,12 +98,14 @@ function updateNowPlaying(state) {
     block.innerHTML = `<p class="muted">${esc(t("Nothing is playing."))}</p>`;
     return;
   }
+  const names = watcherNames(np);
   block.innerHTML = `
     <div class="row" style="align-items:flex-start">
       <img class="thumb small" src="/admin/img/episode/${esc(np.episode_id)}.jpg" alt="">
       <div>
         <h2>${esc(np.title)}</h2>
         <p><span class="badge">${esc(PLAYER_STATE_LABELS[np.state] ?? np.state)}</span> ${fmtDuration(np.position_s)} / ${fmtDuration(np.duration_s)}</p>
+        <p class="muted watchers">${names.length ? esc(t("Watching: %(names)s", { names: names.join(", ") })) : ""}</p>
       </div>
     </div>
     <form method="post" action="/admin/stop" class="inline"><button class="btn danger">${esc(t("Stop"))}</button></form>`;
@@ -106,14 +114,15 @@ function updateNowPlaying(state) {
 function updateProfiles(state) {
   const timers = {};
   for (const p of (state && state.timer && state.timer.profiles) || []) timers[p.profile_id] = p;
+  const watching = new Set((state && state.now_playing && state.now_playing.profile_ids) || []);
   for (const m of profilesMeta()) {
     const row = document.getElementById(`profile-${m.id}`);
     if (!row) continue;
-    const t = timers[m.id];
-    const usedS = t ? t.used_s : 0;
-    const extraS = t ? t.extra_s : 0;
-    const unlimited = t ? !!t.unlimited : false;
-    const blocked = t ? !!t.blocked : false;
+    const tm = timers[m.id];
+    const usedS = tm ? tm.used_s : 0;
+    const extraS = tm ? tm.extra_s : 0;
+    const unlimited = tm ? !!tm.unlimited : false;
+    const blocked = tm ? !!tm.blocked : false;
     const remaining = unlimited ? null : Math.max(0, m.allowance_min * 60 + extraS - usedS);
 
     const usedEl = row.querySelector(".used");
@@ -126,6 +135,8 @@ function updateProfiles(state) {
     if (unlimitedBadge) unlimitedBadge.classList.toggle("hidden", !unlimited);
     const blockedBadge = row.querySelector(".blocked-badge");
     if (blockedBadge) blockedBadge.classList.toggle("hidden", !blocked);
+    const watchingBadge = row.querySelector(".watching-badge");
+    if (watchingBadge) watchingBadge.classList.toggle("hidden", !watching.has(m.id));
   }
 }
 

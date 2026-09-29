@@ -137,3 +137,12 @@ def test_known_devices_marks_the_selected_one(admin, admin_env):
     assert r.status_code == 200
     assert "Living Room TV" in r.text
     assert "selected" in r.text.lower()
+
+
+def test_settings_shows_each_profiles_avatar_in_order(admin, admin_env):
+    conn = admin_env.conn
+    conn.execute("UPDATE profile SET name = 'Mila', avatar = 'fox' WHERE id = 1")
+    conn.execute("INSERT INTO profile (id, name, avatar, sort_order, created_at) VALUES (2, 'Noor', 'owl', 0, 'x')")
+    text = admin.get("/admin/settings").text
+    assert "/static/avatars/fox.svg" in text and "/static/avatars/owl.svg" in text
+    assert text.index("Noor") < text.index("Mila")

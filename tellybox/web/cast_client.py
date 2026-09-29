@@ -61,8 +61,9 @@ class CastClient:
     async def state(self) -> dict:
         return self._json(await self._request("GET", "/state"))
 
-    async def play(self, episode_id: int) -> dict:
-        r = await self._request("POST", "/play", json={"episode_id": episode_id})
+    async def play(self, episode_id: int, profile_ids: list[int]) -> dict:
+        """PR-2: start an episode for a group of profiles. A 409 means someone in it is out of time (PR-4)."""
+        r = await self._request("POST", "/play", json={"episode_id": episode_id, "profile_ids": list(profile_ids)})
         if r.status_code == 409:
             raise TimeUp(await self.state())
         if r.status_code == 404:

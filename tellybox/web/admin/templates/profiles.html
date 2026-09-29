@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% import "_profile.html" as pf %}
+{% block title %}{{ _("Profiles") }}{% endblock %}
+{% block content %}
+<h1>{{ _("Profiles") }}</h1>
+<p class="muted">{{ _("The kids who watch. Each has their own time, continue watching and viewing session. Allowance and session length are in Settings.") }}</p>
+
+{% for p in profiles %}
+<section class="card profile" id="profile-{{ p.id }}">
+  <div class="row profile-head">
+    {{ pf.picture(p, 64) }}
+    <div>
+      <h2>{{ p.name }}</h2>
+      <p class="muted">
+        {% if p.used_s is not none %}{{ _("%(time)s used", time=p.used_s | minutes) }}{% endif %}
+        {% if p.watching %}<span class="badge ok">{{ _("watching") }}</span>{% endif %}
+      </p>
+    </div>
+  </div>
+
+  <form method="post" action="/admin/profiles/{{ p.id }}" class="stack">
+    <label>{{ _("Name") }}
+      <input type="text" name="name" value="{{ p.name }}" maxlength="{{ limit }}" required>
+    </label>
+    {{ pf.picker(avatars, p.avatar, _("No picture")) }}
+    <div class="row"><button class="btn primary small" type="submit">{{ _("Save") }}</button></div>
+  </form>
+
+  <div class="row photo-row">
+    <form method="post" action="/admin/profiles/{{ p.id }}/photo" enctype="multipart/form-data" class="row">
+      <input type="file" name="file" accept="image/jpeg,image/png,image/webp" required aria-label="{{ _("Photo") | forceescape }}">
+      <button class="btn small" type="submit">{{ _("Upload photo") }}</button>
+    </form>
+    {% if p.picture_path %}
+    <form method="post" action="/admin/profiles/{{ p.id }}/photo/remove" class="inline">
+      <button class="btn small" type="submit">{{ _("Remove photo") }}</button>
+    </form>
+    {% endif %}
+  </div>
+
+  <div class="row">
+    <form method="post" action="/admin/profiles/{{ p.id }}/move" class="inline">
+      <input type="hidden" name="direction" value="up">
+      <button class="btn small" type="submit"{% if loop.first %} disabled{% endif %}>{{ _("Move up") }}</button>
+    </form>
+    <form method="post" action="/admin/profiles/{{ p.id }}/move" class="inline">
+      <input type="hidden" name="direction" value="down">
+      <button class="btn small" type="submit"{% if loop.last %} disabled{% endif %}>{{ _("Move down") }}</button>
+    </form>
+    <form method="post" action="/admin/profiles/{{ p.id }}/delete" class="inline"
+          onsubmit="return confirm({{ _("Delete this profile with its continue watching and history?") | tojson | forceescape }})">
+      <button class="btn small danger" type="submit">{{ _("Delete profile") }}</button>
+    </form>
+  </div>
+</section>
+{% endfor %}
+
+<section class="card" id="add-profile">
+  <h2>{{ _("Add a profile") }}</h2>
+  <form method="post" action="/admin/profiles" class="stack">
+    <label>{{ _("Name") }}
+      <input type="text" name="name" maxlength="{{ limit }}" required>
+    </label>
+    {{ pf.picker(avatars, none, _("No picture")) }}
+    <div class="row"><button class="btn primary" type="submit">{{ _("Add") }}</button></div>
+  </form>
+</section>
+{% endblock %}

@@ -14,7 +14,7 @@ from typing import Literal
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from tellybox import store
 from tellybox.cast.controller import CastController, NoDevice, PlayRefused
@@ -29,6 +29,7 @@ DeviceFactory = Callable[[DeviceInfo], CastDevice]
 
 class PlayRequest(BaseModel):
     episode_id: int
+    profile_ids: list[int] = Field(min_length=1, max_length=20)  # PR-2: who is watching
 
 
 class OverrideRequest(BaseModel):
@@ -65,9 +66,11 @@ def create_api(
     @app.post("/play")
     async def play(req: PlayRequest) -> dict:
         try:
-            return await run(controller.play(req.episode_id))
+            return await run(controller.play(req.episode_id, req.profile_ids))
         except KeyError:
             raise HTTPException(404, "no such episode") from None
+        except ValueError as exc:  # UnknownProfile
+            raise HTTPException(422, f"unknown profile: {exc}") from None
         except PlayRefused as exc:
             raise HTTPException(409, {"error": "time_up", "reason": exc.decision.reason}) from None
 

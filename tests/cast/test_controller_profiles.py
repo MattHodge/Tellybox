@@ -1,0 +1,228 @@
+"""Kid profiles in the cast controller (PR-2, PR-4, A-13), with a fake clock and a fake Chromecast."""
+
+import pytest
+
+from tellybox import store
+from tellybox.cast.controller import EndReason, PlayRefused, UnknownProfile
+from tellybox.cast.fake import FakeCastDevice
+from tellybox.db import to_db
+
+from test_controller import (  # noqa: F401  (fixtures)
+    EPISODE_S,
+    clock,
+    configure,
+    conn,
+    episodes,
+    fake,
+    make_controller,
+    play_calls,
+    pump,
+    run_for,
+    sessions,
+)
+
+
+@pytest.fixture
+def kids(conn, clock):
+    """Three profiles: 1 (the migrated household), 2 and 3."""
+    for name in ("B", "C"):
+        conn.execute("INSERT INTO profile (name, created_at) VALUES (?, ?)", (name, to_db(clock.now())))
+    return [1, 2, 3]
+
+
+def usage(conn) -> dict[int, float]:
+    return {r["profile_id"]: r["seconds_used"] for r in conn.execute("SELECT * FROM daily_usage")}
+
+
+def session_profiles(conn, session_id) -> list[int]:
+    return [r[0] for r in conn.execute(
+        "SELECT profile_id FROM watch_session_profile WHERE watch_session_id = ? ORDER BY profile_id", (session_id,)
+    )]
+
+
+async def play_for(ctrl, fake, episode_id, profile_ids):
+    await ctrl.play(episode_id, profile_ids)
+    await pump(ctrl, fake)
+
+
+async def test_only_the_group_is_timed_and_recorded(conn, clock, fake, episodes, kids):  # PR-2, PR-4
+    ctrl = await make_controller(conn, clock, fake)
+    await play_for(ctrl, fake, episodes[0], [2, 3])
+    await run_for(ctrl, fake, clock, 60)
+    ctrl.persist(clock.now())
+    used = usage(conn)
+    assert used[2] == pytest.approx(60, abs=1) and used[3] == pytest.approx(60, abs=1)
+    assert 1 not in used
+    assert session_profiles(conn, sessions(conn)[0]["id"]) == [2, 3]
+    state = ctrl.state()
+    assert state["now_playing"]["profile_ids"] == [2, 3]
+    assert {p["profile_id"]: p["watching"] for p in state["timer"]["profiles"]} == {1: False, 2: True, 3: True}
+
+
+async def test_play_needs_known_profiles(conn, clock, fake, episodes, kids):
+    ctrl = await make_controller(conn, clock, fake)
+    with pytest.raises(ValueError):
+        await ctrl.play(episodes[0], [])
+    with pytest.raises(UnknownProfile):
+        await ctrl.play(episodes[0], [1, 42])
+    assert ctrl.current is None and not play_calls(fake)
+
+
+async def test_duplicate_ids_are_one_member(conn, clock, fake, episodes, kids):
+    ctrl = await make_controller(conn, clock, fake)
+    await play_for(ctrl, fake, episodes[0], [2, 2, 3])
+    assert ctrl.current.profile_ids == [2, 3]
+
+
+async def test_new_pick_changes_the_group(conn, clock, fake, episodes, kids):  # A-5
+    ctrl = await make_controller(conn, clock, fake)
+    await play_for(ctrl, fake, episodes[0], [1])
+    await run_for(ctrl, fake, clock, 30)
+    await play_for(ctrl, fake, episodes[1], [2])
+    await run_for(ctrl, fake, clock, 30)
+    ctrl.persist(clock.now())
+    used = usage(conn)
+    assert used[1] == pytest.approx(30, abs=2) and used[2] == pytest.approx(30, abs=2)
+    assert sessions(conn)[0]["end_reason"] == EndReason.REPLACED
+
+
+async def test_autoplay_keeps_the_group(conn, clock, fake, episodes, kids):  # PB-3
+    ctrl = await make_controller(conn, clock, fake)
+    await play_for(ctrl, fake, episodes[0], [2, 3])
+    await run_for(ctrl, fake, clock, EPISODE_S + 5)
+    assert ctrl.current.episode.id == episodes[1]
+    assert ctrl.current.profile_ids == [2, 3]
+    assert session_profiles(conn, sessions(conn)[1]["id"]) == [2, 3]
+    ctrl.persist(clock.now())
+    assert 1 not in usage(conn)
+
+
+async def test_a_refusal_carries_the_groups_reason(conn, clock, fake, episodes, kids):  # PR-4
+    ctrl = await make_controller(conn, clock, fake)
+    await ctrl.override("block", profile_id=3)
+    with pytest.raises(PlayRefused) as refused:
+        await ctrl.play(episodes[0], [1, 3])
+    assert refused.value.decision.reason == "blocked"
+    await play_for(ctrl, fake, episodes[0], [1, 2])  # the others can still start
+
+
+async def test_one_member_out_of_time_refuses_the_group(conn, clock, fake, episodes, kids):  # PR-4
+    configure(conn, allowance_min=60)
+    conn.execute("UPDATE profile SET daily_allowance_min = 1 WHERE id = 3")
+    ctrl = await make_controller(conn, clock, fake)
+    await play_for(ctrl, fake, episodes[0], [3])
+    await run_for(ctrl, fake, clock, 70)
+    await ctrl.stop()
+    with pytest.raises(PlayRefused) as refused:
+        await ctrl.play(episodes[1], [1, 3])
+    assert refused.value.decision.reason == "allowance"
+    await play_for(ctrl, fake, episodes[1], [1])
+    state = ctrl.state()
+    by_id = {p["profile_id"]: p for p in state["timer"]["profiles"]}
+    assert by_id[3]["can_start"] is False and by_id[3]["reason"] == "allowance" and by_id[3]["remaining_s"] == 0
+    assert by_id[1]["can_start"] is True and by_id[1]["remaining_s"] > 0
+    assert state["timer"]["can_start"] and not state["time_up"]  # describes the watcher, profile 1
+
+
+async def test_group_finishes_the_episode_then_stops_and_the_other_can_start(conn, clock, fake, episodes, kids):
+    configure(conn, allowance_min=60)
+    conn.execute("UPDATE profile SET daily_allowance_min = 1 WHERE id = 2")
+    ctrl = await make_controller(conn, clock, fake)
+    await play_for(ctrl, fake, episodes[0], [1, 2])
+    await run_for(ctrl, fake, clock, 65)
+    state = ctrl.state()
+    assert state["timer"]["action"] == "finish_then_stop" and state["time_up"]
+    await run_for(ctrl, fake, clock, EPISODE_S)
+    assert ctrl.current is None and len(play_calls(fake)) == 1
+    await play_for(ctrl, fake, episodes[1], [1])
+    assert ctrl.current is not None
+
+
+async def test_blocking_a_non_watcher_leaves_playback_alone(conn, clock, fake, episodes, kids):  # WT-7
+    ctrl = await make_controller(conn, clock, fake)
+    await play_for(ctrl, fake, episodes[0], [1])
+    await run_for(ctrl, fake, clock, 10)
+    await ctrl.override("block", profile_id=2)
+    await pump(ctrl, fake)
+    assert ctrl.current is not None and ctrl.state()["timer"]["action"] == "continue"
+    by_id = {p["profile_id"]: p for p in ctrl.state()["timer"]["profiles"]}
+    assert by_id[2]["blocked"] and by_id[2]["reason"] == "blocked" and not by_id[2]["watching"]
+    await ctrl.override("block", profile_id=1)  # a watcher: stops now
+    await pump(ctrl, fake)
+    assert ctrl.current is None
+
+
+async def test_group_resumes_at_the_most_recent_unfinished_position(conn, clock, fake, episodes, kids):  # PB-4
+    ep = episodes[0]
+    now = clock.now()
+    store.save_position(conn, [1], ep, 100, False, now)
+    clock.advance(60)
+    store.save_position(conn, [2], ep, 250, False, clock.now())
+    clock.advance(60)
+    store.save_position(conn, [3], ep, 590, True, clock.now())  # finished: never a resume point
+    ctrl = await make_controller(conn, clock, fake)
+    await play_for(ctrl, fake, ep, [1, 2, 3])
+    assert play_calls(fake)[0][2] == 250
+    await ctrl.stop()
+    await play_for(ctrl, fake, ep, [1])
+    assert play_calls(fake)[1][2] == pytest.approx(250, abs=2)  # the group saved it for every member
+    await ctrl.stop()
+    await play_for(ctrl, fake, episodes[2], [3])
+    assert play_calls(fake)[2][2] == 0
+
+
+async def test_recovery_reattaches_the_watchers(conn, clock, fake, episodes, kids):  # NF-7
+    ctrl = await make_controller(conn, clock, fake)
+    await play_for(ctrl, fake, episodes[0], [2, 3])
+    await run_for(ctrl, fake, clock, 40)
+    url = ctrl.current.url
+    clock.advance(20)
+    fresh = FakeCastDevice(clock, default_duration_s=EPISODE_S)
+    fresh.preload(url, position_s=60)
+    ctrl2 = await make_controller(conn, clock, fresh)
+    assert ctrl2.current.profile_ids == [2, 3]
+    assert ctrl2.timer.watchers == {2, 3}
+    before = usage(conn)
+    await run_for(ctrl2, fresh, clock, 30)
+    ctrl2.persist(clock.now())
+    after = usage(conn)
+    assert after[2] == pytest.approx(before[2] + 30, abs=2) and after[3] == pytest.approx(before[3] + 30, abs=2)
+    assert 1 not in after
+
+
+async def test_the_watchers_survive_a_restart_while_stopped(conn, clock, fake, episodes, kids):  # WT-8
+    ctrl = await make_controller(conn, clock, fake)
+    await play_for(ctrl, fake, episodes[0], [3])
+    await ctrl.stop()
+    ctrl2 = await make_controller(conn, clock, FakeCastDevice(clock))
+    assert ctrl2.timer.watchers == {3}
+
+
+async def test_profile_deleted_mid_play_is_dropped(conn, clock, fake, episodes, kids):
+    ctrl = await make_controller(conn, clock, fake)
+    await play_for(ctrl, fake, episodes[0], [2, 3])
+    await run_for(ctrl, fake, clock, 20)
+    conn.execute("DELETE FROM profile WHERE id = 3")
+    await run_for(ctrl, fake, clock, 20)  # ticks; the persist must not hit a foreign key error
+    ctrl.persist(clock.now())
+    assert ctrl.current.profile_ids == [2]
+    assert ctrl.timer.watchers == {2}
+    state = ctrl.state()
+    assert state["now_playing"]["profile_ids"] == [2]
+    assert [p["profile_id"] for p in state["timer"]["profiles"]] == [1, 2]
+    await ctrl.stop()  # ending the episode saves the positions of the remaining members only
+    assert store.get_position(conn, 2, episodes[0]) is not None
+
+
+async def test_profile_added_while_running_can_play(conn, clock, fake, episodes):
+    ctrl = await make_controller(conn, clock, fake)
+    conn.execute("INSERT INTO profile (name, created_at) VALUES ('New', ?)", (to_db(clock.now()),))
+    assert [p["profile_id"] for p in ctrl.state()["timer"]["profiles"]] == [1, 2]
+    await play_for(ctrl, fake, episodes[0], [2])
+    assert ctrl.current.profile_ids == [2]
+
+
+async def test_no_profile_list_means_everyone(conn, clock, fake, episodes, kids):
+    ctrl = await make_controller(conn, clock, fake)
+    await ctrl.play(episodes[0])
+    assert ctrl.current.profile_ids == [1, 2, 3]

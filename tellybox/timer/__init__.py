@@ -8,6 +8,7 @@ from .models import (
     DayUsage,
     Decision,
     ProfilePolicy,
+    ProfileStatus,
     TimerSettings,
     TimeUpReason,
 )
@@ -20,6 +21,7 @@ __all__ = [
     "DayUsage",
     "Decision",
     "ProfilePolicy",
+    "ProfileStatus",
     "TimeUpReason",
     "TimerSettings",
     "WatchTimer",

@@ -9,6 +9,11 @@ contract with in-memory fixtures. Put the UI in any state with POST /mock/state:
 
 `now_playing` may be null or {"episode_id", "state"} (thumb/title/show_id are filled in).
 `sky` is merged; `last_five` is derived from fraction_left unless given.
+v2 (step 8): three profiles (1 Mila, 2 Noah with a photo, 3 Lena out of time). `sky` and `time_up`
+apply to every profile that is not fixed; override single kids with
+{"profiles": {"2": {"fraction_left": 0.05, "time_up": false}}}, set {"watching": [1, 2]} and
+{"day": "2026-09-30"} (a new day makes the devices ask who's watching again).
+The top-level sky/time_up are derived from the watchers, like the real server.
 POST /mock/reset restores the initial state.
 
 Run: .venv/bin/python scripts/kid_mock_server.py --port 8099
@@ -19,6 +24,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import copy
+import datetime
 import json
 import shutil
 import subprocess
@@ -68,12 +74,34 @@ for ep_id in (101, 102, 103, 201, 202, 301):
 for ep_id, p in ((104, 0.42), (203, 0.15), (302, 0.8), (401, 0.6)):
     EPISODES[ep_id]["progress"] = p
 
-INITIAL_STATE = {
-    "tv": "ok",
-    "now_playing": None,
-    "sky": {"fraction_left": 0.92, "last_five": False, "unlimited": False},
-    "time_up": False,
-}
+# id, name, built-in avatar, has an uploaded photo, continue-watching episodes (resume, then next)
+PROFILES = [
+    (1, "Mila", "fox", False, [(104, "resume"), (302, "resume"), (204, "next"), (203, "resume"), (401, "resume"), (303, "next")]),
+    (2, "Noah", "bear", True, [(401, "resume"), (105, "next"), (302, "resume")]),
+    (3, "Lena", "rabbit", False, [(203, "resume"), (302, "resume")]),
+]
+PROFILE_IDS = [p[0] for p in PROFILES]
+FIXED_NIGHT = {3}  # out of time in the initial state; plain sky/time_up posts leave it alone
+
+
+def _kid(fraction, time_up=False):
+    return {"fraction_left": fraction, "last_five": fraction is not None and 0 < fraction <= 0.1,
+            "unlimited": False, "time_up": time_up}
+
+
+def _initial() -> dict:
+    return {
+        "tv": "ok",
+        "now_playing": None,
+        "watching": [],
+        "sky": {"fraction_left": 0.92, "last_five": False, "unlimited": False},
+        "time_up": False,
+        "profiles": {"1": _kid(0.92), "2": _kid(0.55), "3": _kid(0.0, True)},
+        "day": datetime.date.today().isoformat(),
+    }
+
+
+INITIAL_STATE = _initial()
 
 IMG_DIR = Path(tempfile.mkdtemp(prefix="tellybox-mock-img-"))
 
@@ -107,6 +135,9 @@ def _make_jpg(path: Path, base: str, seed: int, big: bool) -> None:
 
 
 def make_images() -> None:
+    for pid, _n, _a, photo, _c in PROFILES:
+        if photo:
+            _make_jpg(IMG_DIR / f"profile-{pid}.jpg", "F2A93B", pid * 11, big=False)
     for show_id, _t, base, has_art, _n in SHOWS:
         if has_art:
             _make_jpg(IMG_DIR / f"show-{show_id}.jpg", base, show_id * 7, big=True)
@@ -122,6 +153,37 @@ def show_title(show_id: int) -> str:
 def tile(ep_id: int) -> dict:
     e = EPISODES[ep_id]
     return {**e, "thumb": f"/img/episode/{ep_id}.jpg"}
+
+
+def reduce_group(profiles: dict, ids: list[int]) -> tuple[dict, bool]:
+    """Sky and time_up for a group: lowest fraction, last five if any, out of time if any."""
+    ms = [profiles[str(i)] for i in ids if str(i) in profiles]
+    if not ms:
+        return {"fraction_left": 1.0, "last_five": False, "unlimited": False}, False
+    unlimited = all(m["unlimited"] for m in ms)
+    fr = [m["fraction_left"] for m in ms if not m["unlimited"] and m["fraction_left"] is not None]
+    sky = {"fraction_left": None if unlimited else (min(fr) if fr else 1.0),
+           "last_five": (not unlimited) and any(m["last_five"] for m in ms), "unlimited": unlimited}
+    return sky, any(m["time_up"] for m in ms)
+
+
+def derive(state: dict) -> None:
+    """The top-level sky/time_up describe the current watchers (the first kid when nobody watches)."""
+    ids = state["watching"] or PROFILE_IDS[:1]
+    state["sky"], state["time_up"] = reduce_group(state["profiles"], ids)
+
+
+def parse_group(raw: str | list | None) -> list[int]:
+    """`?profiles=1,3` or a JSON list; anything else is a 400 (docs/kid-api.md)."""
+    if raw is None or raw == "":
+        return PROFILE_IDS[:1]
+    try:
+        ids = [int(x) for x in (raw.split(",") if isinstance(raw, str) else raw)]
+    except (TypeError, ValueError):
+        raise HTTPException(400, "bad_profiles") from None
+    if not 1 <= len(ids) <= 20 or any(i not in PROFILE_IDS for i in ids) or len(set(ids)) != len(ids):
+        raise HTTPException(400, "bad_profiles")
+    return ids
 
 
 class Hub:
@@ -171,19 +233,34 @@ def manifest() -> FileResponse:
     return FileResponse(STATIC / "manifest.webmanifest", media_type="application/manifest+json")
 
 
+@app.get("/api/kid/profiles")
+def profiles() -> list[dict]:
+    out = []
+    for pid, name, avatar, photo, _cont in PROFILES:
+        st = hub.state["profiles"][str(pid)]
+        out.append({"profile_id": pid, "name": name, "picture": f"/img/profile/{pid}.jpg" if photo else None,
+                    "avatar": avatar, **st})
+    return out
+
+
 @app.get("/api/kid/home")
-def home() -> dict:
-    cont = []
-    for ep_id in (104, 302, 203, 401):
-        cont.append({**tile(ep_id), "kind": "resume"})
-    cont.insert(1, {**tile(204), "kind": "next"})
-    cont.append({**tile(303), "kind": "next"})
+def home(profiles: str | None = None) -> dict:
+    ids = parse_group(profiles)
+    cont, seen = [], set()
+    for pid, _n, _a, _p, items in PROFILES:  # merged by the admin's order here; real server: by recency
+        if pid not in ids:
+            continue
+        for ep_id, kind in items:
+            if ep_id not in seen:
+                seen.add(ep_id)
+                cont.append({**tile(ep_id), "kind": kind})
     shows = [{"show_id": s[0], "artwork": f"/img/show/{s[0]}.jpg", "title": s[1]} for s in SHOWS]
     return {"continue": cont, "shows": shows}
 
 
 @app.get("/api/kid/shows/{show_id}")
-def show(show_id: int) -> dict:
+def show(show_id: int, profiles: str | None = None) -> dict:
+    parse_group(profiles)
     if show_id not in SHOW_EPISODES:
         raise HTTPException(404, "not_found")
     return {"show_id": show_id, "artwork": f"/img/show/{show_id}.jpg", "title": show_title(show_id),
@@ -219,13 +296,19 @@ async def events(request: Request) -> StreamingResponse:
 async def play(request: Request) -> JSONResponse:
     body = await request.json()
     ep_id = body.get("episode_id")
+    try:
+        ids = parse_group(body.get("profile_ids") or None)
+    except HTTPException:
+        return JSONResponse({"detail": "bad_profiles"}, status_code=400)
     await asyncio.sleep(0.4)  # feel the in-flight state
     if ep_id not in EPISODES:
         return JSONResponse({"detail": "not_found"}, status_code=404)
-    if hub.state["time_up"]:
+    if any(hub.state["profiles"][str(i)]["time_up"] for i in ids):
         return JSONResponse(hub.state, status_code=409)
     if hub.state["tv"] != "ok":
         return JSONResponse(hub.state, status_code=503)
+    hub.state["watching"] = ids
+    derive(hub.state)
     hub.set_now_playing(ep_id, "loading")
     hub.publish()
     hub.settle_later("playing", 2.5)
@@ -260,6 +343,14 @@ def episode_img(ep_id: int) -> FileResponse:
     return FileResponse(p, media_type="image/jpeg")
 
 
+@app.get("/img/profile/{pid}.jpg")
+def profile_img(pid: int) -> FileResponse:
+    p = IMG_DIR / f"profile-{pid}.jpg"
+    if not p.is_file():
+        raise HTTPException(404)
+    return FileResponse(p, media_type="image/jpeg")
+
+
 @app.get("/img/show/{show_id}.jpg")
 def show_img(show_id: int) -> FileResponse:
     p = IMG_DIR / f"show-{show_id}.jpg"
@@ -268,35 +359,54 @@ def show_img(show_id: int) -> FileResponse:
     return FileResponse(p, media_type="image/jpeg")
 
 
+def _fix_kid(k: dict, patch: dict) -> None:
+    k.update(patch)
+    if k.get("unlimited"):
+        k["fraction_left"], k["last_five"] = None, False
+    elif "last_five" not in patch:
+        f = k.get("fraction_left")
+        k["last_five"] = f is not None and 0 < f <= 0.1
+
+
 @app.post("/mock/state")
 async def mock_state(request: Request) -> dict:
     body = await request.json()
     s = hub.state
     if "tv" in body:
         s["tv"] = body["tv"]
-    if "time_up" in body:
-        s["time_up"] = bool(body["time_up"])
-    if "sky" in body:
-        s["sky"].update(body["sky"])
-        if s["sky"].get("unlimited"):
-            s["sky"]["fraction_left"] = None
-            s["sky"]["last_five"] = False
-        elif "last_five" not in body["sky"]:
-            f = s["sky"].get("fraction_left")
-            s["sky"]["last_five"] = f is not None and f <= 0.1
+    for pid in PROFILE_IDS:  # sky/time_up posts apply to every kid that is not fixed at night
+        if pid in FIXED_NIGHT:
+            continue
+        kid = s["profiles"][str(pid)]
+        if "time_up" in body:
+            kid["time_up"] = bool(body["time_up"])
+        if "sky" in body:
+            _fix_kid(kid, body["sky"])
+    for pid, patch in (body.get("profiles") or {}).items():
+        _fix_kid(s["profiles"][str(pid)], patch)
+    if "watching" in body:
+        s["watching"] = parse_group(body["watching"]) if body["watching"] else []
+    if "day" in body:
+        s["day"] = body["day"]
+    derive(s)
     if "now_playing" in body:
         np = body["now_playing"]
         if np is None:
             hub.set_now_playing(None)
+            s["watching"] = []
+            derive(s)
         else:
             hub.set_now_playing(np["episode_id"], np.get("state", "playing"))
+            if not s["watching"]:
+                s["watching"] = PROFILE_IDS[:1]
+                derive(s)
     hub.publish()
     return s
 
 
 @app.post("/mock/reset")
 def mock_reset() -> dict:
-    hub.state = copy.deepcopy(INITIAL_STATE)
+    hub.state = _initial()
     hub.publish()
     return hub.state
 

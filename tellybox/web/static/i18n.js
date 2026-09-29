@@ -18,6 +18,9 @@ const LABELS = {
     "Play": "Play",
     "Nothing playing": "Nothing playing",
     "TV not reachable": "TV not reachable",
+    "Who's watching?": "Who's watching?",
+    "Go": "Go",
+    "Change who's watching": "Change who's watching",
   },
   nl: {
     "Time left": "Tijd over",
@@ -32,6 +35,9 @@ const LABELS = {
     "Play": "Afspelen",
     "Nothing playing": "Er speelt niets",
     "TV not reachable": "Tv niet bereikbaar",
+    "Who's watching?": "Wie kijkt er?",
+    "Go": "Start",
+    "Change who's watching": "Wijzig wie er kijkt",
   },
   de: {
     "Time left": "Verbleibende Zeit",
@@ -46,6 +52,9 @@ const LABELS = {
     "Play": "Abspielen",
     "Nothing playing": "Es läuft nichts",
     "TV not reachable": "Fernseher nicht erreichbar",
+    "Who's watching?": "Wer schaut zu?",
+    "Go": "Los",
+    "Change who's watching": "Ändern, wer zuschaut",
   },
 };
 

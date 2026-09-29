@@ -16,6 +16,7 @@ import asyncio
 import contextlib
 import logging
 import sqlite3
+from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
@@ -70,6 +71,10 @@ class PlayRefused(Exception):
 
 class NoDevice(Exception):
     pass
+
+
+class UnknownProfile(ValueError):
+    """A pick named a profile that does not exist (PR-2)."""
 
 
 @dataclass
@@ -129,6 +134,7 @@ class CastController:
             now,
             store.load_timer_snapshot(conn),
         )
+        self._known_profiles = store.profile_ids(conn)
         self._decision = self.timer.tick(now)
         self._lost_at: datetime | None = None
         self._reconnected = False  # first receiver status after a reconnect decides between resume and PB-5
@@ -211,20 +217,31 @@ class CastController:
 
     # ------------------------------------------------------------------ commands
 
-    async def play(self, episode_id: int) -> None:
-        """A kid picked an episode (KA-5). Replaces whatever plays (A-5)."""
+    async def play(self, episode_id: int, profile_ids: Collection[int] | None = None) -> None:
+        """The kids ``profile_ids`` picked an episode (KA-5, PR-2). Replaces whatever plays (A-5).
+        None means every profile; an empty list is an error. The group starts only if every
+        member may (PR-4)."""
         if self.device is None:
             raise NoDevice()
         episode = library.get_episode(self.conn, episode_id)
         if episode is None:
             raise KeyError(episode_id)
         now = self.clock.now()
-        decision = self.timer.on_pick(now)
+        self._refresh_profiles(now)
+        if profile_ids is None:
+            profiles = list(self._known_profiles)
+        elif not profile_ids:
+            raise ValueError("a pick needs at least one profile")
+        else:
+            profiles = sorted(set(profile_ids))
+            if unknown := [p for p in profiles if p not in self._known_profiles]:
+                raise UnknownProfile(unknown[0])
+        decision = self.timer.on_pick(now, profiles)
         self._decision = decision
         if not decision.can_start:
             self._broadcast()
             raise PlayRefused(decision)
-        await self._start_episode(episode, now)
+        await self._start_episode(episode, now, profiles)
 
     async def pause(self) -> None:
         if self.current and self.device:
@@ -240,7 +257,8 @@ class CastController:
     async def override(self, kind: str, value: int | None = None, profile_id: int | None = None) -> None:
         """Parent overrides for today (WT-7): extra_minutes, unlimited, block, stop_now."""
         now = self.clock.now()
-        profiles = [profile_id] if profile_id is not None else store.profile_ids(self.conn)
+        self._refresh_profiles(now)
+        profiles = [profile_id] if profile_id is not None else list(self._known_profiles)
         if kind == "stop_now":
             await self._stop_current(EndReason.PARENT_STOP)
         for p in profiles:
@@ -268,6 +286,7 @@ class CastController:
             self._give_up_recovery()
         if self.current and self._lost_at and (now - self._lost_at).total_seconds() >= RECONNECT_WAIT_S:
             self._end_current(EndReason.DISCONNECTED, ended_at=self._lost_at)
+        self._refresh_profiles(now)
         self._decision = self.timer.tick(now)
         await self._apply_decision(self._decision)
         if (
@@ -287,8 +306,8 @@ class CastController:
         """Write timer state, usage, history heartbeat and position (WT-8, PB-4)."""
         self.conn.execute("BEGIN")
         try:
-            # Pick up admin changes to allowances and settings (AD-2).
-            self.timer.set_policies(store.timer_settings(self.conn, self.tz), store.profile_policies(self.conn), now)
+            # Pick up admin changes to allowances and settings (AD-2), and to the profiles (PR-1).
+            self._refresh_profiles(now, force=True)
             counted = self.timer.pop_counted_s()
             store.save_usages(self.conn, self.timer.pop_dirty_usage(), now)
             store.save_timer_snapshot(self.conn, self.timer.snapshot(), now)
@@ -404,11 +423,11 @@ class CastController:
         nxt = None
         if show and show.autoplay and self._decision.autoplay_allowed:
             nxt = library.next_episode(self.conn, c.episode.id)
-        if nxt is not None:
-            decision = self.timer.on_pick(now)
+        if nxt is not None and c.profile_ids:
+            decision = self.timer.on_pick(now, c.profile_ids)  # autoplay keeps the group
             self._decision = decision
             if decision.can_start:
-                await self._start_episode(nxt, now)
+                await self._start_episode(nxt, now, c.profile_ids)
                 return
         if self.device:
             with contextlib.suppress(CastCommandError):
@@ -416,24 +435,23 @@ class CastController:
 
     # ------------------------------------------------------------------ internals
 
-    async def _start_episode(self, episode: Episode, now: datetime) -> None:
+    async def _start_episode(self, episode: Episode, now: datetime, profiles: list[int]) -> None:
         if self.device is None:
             raise NoDevice()
         if self.current:
             self._end_current(EndReason.REPLACED)
-        profiles = store.profile_ids(self.conn)
         start_s = 0.0
-        saved = store.get_position(self.conn, profiles[0], episode.id)
-        if saved and not saved[1]:
-            if not episode.duration_s or saved[0] < episode.duration_s - RESUME_TAIL_S:
-                start_s = saved[0]  # continue watching (PB-4)
+        saved = store.group_position(self.conn, profiles, episode.id)
+        if saved is not None:
+            if not episode.duration_s or saved < episode.duration_s - RESUME_TAIL_S:
+                start_s = saved  # continue watching (PB-4)
         url = media_urls.media_url(self.media_base_url, self.secret, episode.id, now)
         session_id = store.open_watch_session(self.conn, episode.id, profiles, now)
         self.current = Current(
             episode=episode,
             url=url,
             watch_session_id=session_id,
-            profile_ids=profiles,
+            profile_ids=list(profiles),
             position_s=start_s,
             position_at=now,
             duration_s=episode.duration_s,
@@ -472,6 +490,7 @@ class CastController:
         if c is None:
             return
         now = self.clock.now()
+        self._refresh_profiles(now)  # a profile deleted meanwhile must not get a position row
         self._decision = self.timer.set_activity(now, Activity.STOPPED)
         counted = self.timer.pop_counted_s()
         pos = c.position(ended_at or now)
@@ -501,15 +520,18 @@ class CastController:
                 self._give_up_recovery()
                 return
             receiver = self.device.receiver if self.device else None
+            self._refresh_profiles(now)
+            watchers = [p for p in rs.profile_ids if p in self._known_profiles] or list(self._known_profiles)
             self.current = Current(
                 episode=episode,
                 url=event.content_id,
                 watch_session_id=rs.id,
-                profile_ids=rs.profile_ids,
+                profile_ids=watchers,
                 cast_session_id=receiver.session_id if receiver and receiver.app_id == DEFAULT_MEDIA_RECEIVER else rs.cast_session_id,
                 duration_s=episode.duration_s,
             )
             self._recovering = None
+            self._decision = self.timer.set_watchers(now, watchers)  # the same kids keep paying (PR-4)
             log.info("re-attached to episode %s after restart", episode.id)
 
     def _give_up_recovery(self) -> None:
@@ -520,10 +542,21 @@ class CastController:
         self._recovering = None
         self._recover_deadline = None
 
+    def _refresh_profiles(self, now: datetime, force: bool = False) -> None:
+        """Follow profiles added or deleted in the admin: the timer learns the new set, and a
+        deleted profile leaves the current episode (its rows are gone, so no more positions)."""
+        ids = store.profile_ids(self.conn)
+        if ids != self._known_profiles or force:
+            self.timer.set_policies(store.timer_settings(self.conn, self.tz), store.profile_policies(self.conn), now)
+            self._known_profiles = ids
+        if self.current and any(p not in ids for p in self.current.profile_ids):
+            self.current.profile_ids = [p for p in self.current.profile_ids if p in ids]
+
     # ------------------------------------------------------------------ state (KA-6, KA-7, AD-3)
 
     def state(self) -> dict:
         now = self.clock.now()
+        self._refresh_profiles(now)
         d = self._decision
         c = self.current
         now_playing = None
@@ -536,6 +569,7 @@ class CastController:
                 "state": "loading" if state in (PlayerState.UNKNOWN, PlayerState.IDLE) else state.value.lower(),
                 "position_s": round(c.position(now)),
                 "duration_s": c.duration_s,
+                "profile_ids": sorted(c.profile_ids),
             }
         info = self.device.info if self.device else None
         return {
@@ -550,19 +584,25 @@ class CastController:
                 "grace_deadline": to_db(d.grace_deadline),
                 "session_started_at": to_db(d.session_started_at),
                 "session_elapsed_s": None if d.session_elapsed_s is None else round(d.session_elapsed_s),
-                "profiles": [
-                    {
-                        "profile_id": u.profile_id,
-                        "day": u.day.isoformat(),
-                        "used_s": round(u.used_s),
-                        "extra_s": round(u.extra_s),
-                        "unlimited": u.unlimited,
-                        "blocked": u.blocked,
-                    }
-                    for u in (self.timer.usage(p) for p in store.profile_ids(self.conn))
-                ],
+                "profiles": [self._profile_state(now, p) for p in self._known_profiles],
             },
             "time_up": not d.can_start,  # KA-9
+        }
+
+    def _profile_state(self, now: datetime, profile_id: int) -> dict:
+        u, status = self.timer.usage(profile_id), self.timer.profile_status(now, profile_id)
+        return {
+            "profile_id": u.profile_id,
+            "day": u.day.isoformat(),
+            "used_s": round(u.used_s),
+            "extra_s": round(u.extra_s),
+            "unlimited": u.unlimited,
+            "blocked": u.blocked,
+            "remaining_s": None if status.remaining_s is None else round(status.remaining_s),
+            "can_start": status.can_start,
+            "reason": status.reason.value if status.reason else None,
+            # Watching means part of the episode on screen; the timer keeps the last group as its watchers.
+            "watching": self.current is not None and profile_id in self.current.profile_ids,
         }
 
     def subscribe(self) -> asyncio.Queue:

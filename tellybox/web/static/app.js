@@ -1,10 +1,11 @@
 // Tellybox kid app (KA-1..KA-10). Vanilla ES modules, no build step.
-// Routes: #/ (home) and #/show/{id}. Live state via SSE; the sky is the timer.
+// Routes: #/ (home), #/show/{id} and #/who (who is watching, PR-2). Live state via SSE; the sky is the timer.
 
 import { api, subscribe, HttpError } from "./api.js";
 import { icons, placeholderTv } from "./icons.js";
 import { applySky } from "./sky.js";
 import { label as tr, translatePage } from "./i18n.js";
+import { readSelection, writeSelection, clearSelection, selectionValid, reduceGroup, fillWhoButton, renderPicker } from "./profiles.js";
 
 translatePage(); // NF-13: <html lang> and the screen-reader labels in index.html
 
@@ -12,6 +13,7 @@ const $ = (sel, root = document) => root.querySelector(sel);
 const view = $("#view");
 const nowbar = $("#nowbar");
 const skyParts = { body: document.body, sun: $("#sun"), skyEl: $("#sky") };
+const whoBtn = $("#whobtn");
 
 // ---------- state ----------
 
@@ -20,7 +22,14 @@ let state = {
   now_playing: null,
   sky: { fraction_left: 1, last_five: false, unlimited: false },
   time_up: false,
+  profiles: {}, // per kid: {fraction_left, last_five, unlimited, time_up}
+  watching: [],
+  day: null, // the timer day; a new day means asking who's watching again
 };
+let allProfiles = []; // [{profile_id, name, picture, avatar, ...}] in the admin's order
+let group = []; // the profile ids this device is watching as (PR-2)
+let picker = null; // the who's-watching screen while it is showing
+let lastTouch = 0;
 let streamDown = false; // SSE errored and no event since: treat the TV as unreachable
 let playBusy = false; // one pick request in flight
 let toggleBusy = false; // one pause/resume request in flight
@@ -105,6 +114,7 @@ function showTile(s) {
 // ---------- views ----------
 
 function parseRoute() {
+  if (/^#\/who\/?$/.test(location.hash)) return { name: "who" };
   const m = location.hash.match(/^#\/show\/(\d+)\/?$/);
   if (m) return { name: "show", id: Number(m[1]) };
   return { name: "home" };
@@ -115,9 +125,14 @@ async function loadView({ keepPlace = false } = {}) {
   const r = route;
   let data;
   try {
-    data = r.name === "show" ? await api.show(r.id) : await api.home();
+    if (r.name === "who") data = await api.profiles();
+    else data = r.name === "show" ? await api.show(r.id, group) : await api.home(group);
   } catch (err) {
     if (token !== viewToken) return;
+    if (err instanceof HttpError && err.status === 400 && r.name !== "who") {
+      forgetGroup(); // a kid in the pick is gone: ask again
+      return;
+    }
     if (err instanceof HttpError && err.status === 404 && r.name === "show") {
       history.replaceState(null, "", "#/"); // show hidden or gone: back home
       onRoute();
@@ -135,9 +150,15 @@ async function loadView({ keepPlace = false } = {}) {
   const focused = document.activeElement && view.contains(document.activeElement) ? document.activeElement : null;
   const focusKey = focused?.dataset.ep ? `[data-ep="${focused.dataset.ep}"]` : focused?.dataset.show ? `[data-show="${focused.dataset.show}"]` : focused?.classList.contains("btn-home") ? ".btn-home" : null;
 
-  const frag = r.name === "show" ? renderShow(data) : renderHome(data);
+  picker = null;
+  let frag;
+  if (r.name === "who") {
+    allProfiles = data;
+    frag = renderWho();
+  } else frag = r.name === "show" ? renderShow(data) : renderHome(data);
   view.replaceChildren(frag);
   view.dataset.route = r.name;
+  updateWhoButton();
 
   if (keepPlace) {
     view.scrollTop = scrollTop;
@@ -165,6 +186,23 @@ function renderHome(data) {
   return frag;
 }
 
+// PR-2: big round pictures, tap to pick (several allowed), then the big arrow.
+function renderWho() {
+  const sel = readSelection();
+  const keep = sel && selectionValid(sel, allProfiles, state.day) ? sel.profiles : [];
+  picker = renderPicker({
+    profiles: allProfiles,
+    preselected: keep,
+    stateProfiles: state.profiles,
+    onGo: (ids) => {
+      group = ids;
+      writeSelection({ profiles: ids, day: state.day, last_used: Date.now() });
+      location.hash = "#/";
+    },
+  });
+  return picker.node;
+}
+
 function renderShow(data) {
   const frag = document.createDocumentFragment();
   const head = el("div", "show-head");
@@ -185,9 +223,55 @@ function renderShow(data) {
   return frag;
 }
 
+// Is there a valid pick on this device? A single kid needs no question. Sets `group`.
+function resolveGroup() {
+  if (allProfiles.length === 1) {
+    group = [allProfiles[0].profile_id];
+    return true;
+  }
+  const sel = readSelection();
+  if (selectionValid(sel, allProfiles, state.day)) {
+    group = sel.profiles;
+    return true;
+  }
+  group = [];
+  return false;
+}
+
+// Keep the pick alive while it is in use (the 30-minute idle rule).
+function touchSelection() {
+  const sel = readSelection();
+  if (!sel || Date.now() - lastTouch < 15000) return;
+  lastTouch = Date.now();
+  writeSelection({ ...sel, last_used: lastTouch });
+}
+
+function forgetGroup() {
+  clearSelection();
+  group = [];
+  if (location.hash === "#/who") onRoute();
+  else location.hash = "#/who";
+}
+
+function updateWhoButton() {
+  const show = allProfiles.length > 1 && group.length > 0 && route && route.name !== "who";
+  whoBtn.hidden = !show;
+  if (show) fillWhoButton(whoBtn, allProfiles, group);
+}
+
 function onRoute() {
   const prev = route;
   route = parseRoute();
+  if (route.name === "who" && allProfiles.length === 1) {
+    history.replaceState(null, "", "#/");
+    route = parseRoute();
+  }
+  if (route.name !== "who" && !resolveGroup()) {
+    history.replaceState(null, "", "#/who");
+    route = { name: "who" };
+  }
+  if (route.name !== "who") touchSelection();
+  updateWhoButton();
   cameFromHome = route.name === "show" && prev?.name === "home";
   view.scrollTop = 0;
   view.replaceChildren();
@@ -198,6 +282,7 @@ function onRoute() {
 let refreshTimer = null;
 function refreshSoon() {
   clearTimeout(refreshTimer);
+  if (route?.name === "who") return; // don't reset the taps
   refreshTimer = setTimeout(() => loadView({ keepPlace: true }), 600);
 }
 
@@ -262,17 +347,26 @@ async function toggle() {
 // ---------- picks (KA-5, KA-9) ----------
 
 async function pick(tile) {
-  if (state.time_up || playBusy) return;
+  if (effective().time_up || playBusy) return;
+  if (!resolveGroup()) {
+    forgetGroup(); // the day changed or it has been idle: ask who's watching
+    return;
+  }
   const id = Number(tile.dataset.ep);
   playBusy = true;
   tile.classList.add("is-pending");
   view.classList.add("is-picking");
-  const r = await api.play(id);
+  touchSelection();
+  const r = await api.play(id, group);
   playBusy = false;
   tile.classList.remove("is-pending");
   view.classList.remove("is-picking");
   if (r.status === 404) {
     loadView({ keepPlace: true });
+    return;
+  }
+  if (r.status === 400) {
+    forgetGroup();
     return;
   }
   handleActionResult(r);
@@ -283,7 +377,12 @@ function handleActionResult({ status, data }) {
     applyState(data);
     return;
   }
-  if (status === 409) applyState({ ...state, time_up: true });
+  if (status === 409) {
+    // Someone in the group is out of time: draw them at night.
+    const profiles = { ...state.profiles };
+    for (const id of group) if (profiles[id]) profiles[id] = { ...profiles[id], time_up: true };
+    applyState({ ...state, time_up: true, profiles });
+  }
   else if (status === 503 || status === 0) applyState({ ...state, tv: "unreachable" });
 }
 
@@ -300,13 +399,21 @@ view.addEventListener("click", (e) => {
     return;
   }
   const show = e.target.closest(".tile-show");
-  if (show && state.time_up) e.preventDefault();
+  if (show && effective().time_up) e.preventDefault();
 });
 
 // ---------- live state ----------
 
+// What this device shows: the sky and time-up for its own group only (PR-4). The picker has no
+// group yet, so it always shows a day sky.
+function effective() {
+  if (route?.name === "who") return { ...state, sky: { fraction_left: 1, last_five: false, unlimited: false }, time_up: false };
+  return { ...state, ...reduceGroup(state, group) };
+}
+
 function updateLive() {
-  applySky(state, skyParts);
+  const eff = effective();
+  applySky(eff, skyParts);
   renderBar();
   const current = state.now_playing?.episode_id;
   for (const t of view.querySelectorAll(".tile-ep")) {
@@ -314,17 +421,24 @@ function updateLive() {
   }
   // Night: tiles are dimmed and inert (KA-9). The home button keeps working.
   for (const g of view.querySelectorAll(".strip, .grid")) {
-    g.inert = !!state.time_up;
-    g.setAttribute("aria-disabled", String(!!state.time_up));
+    g.inert = !!eff.time_up;
+    g.setAttribute("aria-disabled", String(!!eff.time_up));
   }
   document.body.classList.toggle("tv-down", tvDown());
+  picker?.update(state.profiles);
 }
 
 function applyState(next) {
   const prev = state;
+  const prevEff = effective();
   state = next;
+  if (group.some((id) => (next.watching || []).includes(id))) touchSelection(); // watching keeps the pick alive
+  if (prev.day && next.day && prev.day !== next.day && route && route.name !== "who") {
+    onRoute(); // a new timer day: ask who's watching again
+    return;
+  }
   updateLive();
-  if (route && (prev.now_playing?.episode_id !== next.now_playing?.episode_id || prev.time_up !== next.time_up)) {
+  if (route && (prev.now_playing?.episode_id !== next.now_playing?.episode_id || prevEff.time_up !== effective().time_up)) {
     refreshSoon(); // progress and "continue watching" may have changed
   }
 }
@@ -332,16 +446,17 @@ function applyState(next) {
 // ---------- boot ----------
 
 window.addEventListener("hashchange", onRoute);
+whoBtn.addEventListener("click", () => {
+  location.hash = "#/who";
+});
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible" && route) loadView({ keepPlace: true });
+  if (document.visibilityState === "visible" && route && route.name !== "who") {
+    if (resolveGroup()) loadView({ keepPlace: true });
+    else onRoute(); // idle for 30 minutes or a new day: ask again
+  }
 });
 
 updateLive();
-onRoute();
-api.state().then(
-  (s) => applyState(s),
-  () => {},
-);
 subscribe({
   onState: (s) => {
     streamDown = false;
@@ -352,3 +467,17 @@ subscribe({
     updateLive();
   },
 });
+
+// The kids and the server's day come first: they decide whether to ask who's watching.
+async function boot() {
+  const [p, st] = await Promise.allSettled([api.profiles(), api.state()]);
+  if (st.status === "fulfilled") state = { ...state, ...st.value };
+  if (p.status !== "fulfilled") {
+    setTimeout(boot, 3000);
+    return;
+  }
+  allProfiles = p.value;
+  updateLive();
+  onRoute();
+}
+boot();

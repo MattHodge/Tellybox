@@ -131,8 +131,17 @@ Plan: `docs/plans/i18n.md`. The foundation was built first, then subagents did t
 
 The owner reordered the phases on 2026-09-28 (PRD "Build order after v1"): kid profiles, SponsorBlock, channel subscriptions, manual splitting, smart splitting, then the Tellybox Cast receiver. The decisions from that session are PRD A-7..A-11, SB-1..SB-6 and CR-1..CR-8.
 
-### 8. Kid profiles (v2)
-"Who's watching" screen, per-profile allowance, usage, continue watching and history, watching together (PR-1..PR-4). There's no PIN, and every profile sees the whole library. Propose a plan first.
+### 8. Kid profiles (v2), in progress on `step8/profiles`
+"Who's watching" screen, per-profile allowance, usage, continue watching and history, watching together (PR-1..PR-4). There's no PIN, and every profile sees the whole library.
+- Plan `docs/plans/step8-profiles.md`, approved 2026-09-29 (decisions A-12..A-15). Subagent briefs: `docs/plans/step8-handoff.md`.
+- Contract: migration 005 (`profile.avatar`, `profile.sort_order`), `tellybox/avatars.py`, timer stubs, `docs/cast-api.md`, `docs/kid-api.md`.
+- Built by three Sonnet subagents from the contract, merged and reviewed by the controller (2026-09-29). 881 tests.
+  - **Timer and cast (A):** watchers; only they accrue time. Per-profile viewing sessions and exhaustion (A-13); a group starts only if every member can (PR-4). Blocking a non-watcher leaves playback alone. Snapshot v2 (a v1 snapshot restores as "everyone"). `play(episode_id, profile_ids)`; autoplay and restart recovery keep the group; group resume position; profiles added or deleted in the admin are picked up live.
+  - **Web and admin (B):** `/api/kid/profiles`, `?profiles=` groups (400 `bad_profiles`), play with `profile_ids`, per-profile KidState, `/img/profile/{id}.jpg` (`no-cache`). `/admin/profiles`: add, rename, reorder, avatar picker, photo upload and remove, delete (refused for the last profile, while watching, or while the cast service is unreachable). Dashboard rows per profile with a "watching" badge and an "Everyone" card; history "who" column and `?profile=` filter. nl and de translated.
+  - **Kid app (C):** the `#/who` picker (tap to toggle, several kids, go arrow; kids out of time at night and not pickable), eight avatar SVGs, the pick kept per device (day change or 30 min idle asks again, A-12), the corner avatar button, and the sky and time-up reduced for the device's group. With a single profile there is no picker.
+  - **Contract notes:** `watching` in the cast state means "in the current episode", not the timer's last group, so a kid who watched earlier can still be deleted. Deleting a profile keeps its watch history rows without a name, and it is the one place where the web service changes position and usage rows (by cascade); the cast service drops the profile on its next tick.
+- Timer scenarios checked by hand: A's session max doesn't block B; together with A out of time, the episode finishes and B alone can start again; blocking a non-watcher continues playback.
+- Next: screenshots review with the owner, then the PR, deploy and real-device checks.
 
 ### Then
 9. SponsorBlock (v3) · 10. Channel subscriptions (v4) · 11. Manual splitting (v5) · 12. Smart splitting (v6) · 13. Tellybox receiver (v7), starting with a spike on the real Chromecast.

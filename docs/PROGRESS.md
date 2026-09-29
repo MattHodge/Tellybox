@@ -131,8 +131,10 @@ Plan: `docs/plans/i18n.md`. The foundation was built first, then subagents did t
 
 The owner reordered the phases on 2026-09-28 (PRD "Build order after v1"): kid profiles, SponsorBlock, channel subscriptions, manual splitting, smart splitting, then the Tellybox Cast receiver. The decisions from that session are PRD A-7..A-11, SB-1..SB-6 and CR-1..CR-8.
 
-### 8. Kid profiles (v2)
-"Who's watching" screen, per-profile allowance, usage, continue watching and history, watching together (PR-1..PR-4). There's no PIN, and every profile sees the whole library. Propose a plan first.
+### 8. Kid profiles (v2), in progress on `step8/profiles`
+"Who's watching" screen, per-profile allowance, usage, continue watching and history, watching together (PR-1..PR-4). There's no PIN, and every profile sees the whole library.
+- Plan `docs/plans/step8-profiles.md`, approved 2026-09-29 (decisions A-12..A-15). Subagent briefs: `docs/plans/step8-handoff.md`.
+- Contract: migration 005 (`profile.avatar`, `profile.sort_order`), `tellybox/avatars.py`, timer stubs, `docs/cast-api.md`, `docs/kid-api.md`.
 
 ### Then
 9. SponsorBlock (v3) · 10. Channel subscriptions (v4) · 11. Manual splitting (v5) · 12. Smart splitting (v6) · 13. Tellybox receiver (v7), starting with a spike on the real Chromecast.

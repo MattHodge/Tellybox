@@ -14,6 +14,7 @@ per-episode ``watch_session`` history rows.
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 
@@ -25,6 +26,7 @@ from .models import (
     DayUsage,
     Decision,
     ProfilePolicy,
+    ProfileStatus,
     TimerSettings,
     TimeUpReason,
 )
@@ -97,7 +99,28 @@ class WatchTimer:
         self._check(now)
         return self._decide(now)
 
-    def on_pick(self, now: datetime) -> Decision:
+    @property
+    def watchers(self) -> frozenset[int]:
+        """The profiles watching the current pick (PR-2). Only they accrue time (PR-4)."""
+        raise NotImplementedError  # step 8, part A
+
+    def set_watchers(self, now: datetime, profile_ids: Collection[int]) -> Decision:
+        """Make ``profile_ids`` the watchers without checking whether they may start;
+        used when the cast service re-attaches to playback after a restart."""
+        raise NotImplementedError  # step 8, part A
+
+    def group_decision(self, now: datetime, profile_ids: Collection[int]) -> Decision:
+        """Would a pick by this group start now? No side effects. A group may start only if
+        every member has time left and none is blocked or past its session max (PR-4)."""
+        raise NotImplementedError  # step 8, part A
+
+    def profile_status(self, now: datetime, profile_id: int) -> ProfileStatus:
+        """One profile on its own, for the who's-watching screen and the dashboard."""
+        raise NotImplementedError  # step 8, part A
+
+    def on_pick(self, now: datetime, profile_ids: Collection[int] | None = None) -> Decision:
+        """A pick by ``profile_ids`` (None: every profile, the v1 behaviour). If the group may
+        start, it becomes the watchers and each member's viewing session starts or extends."""
         now = self._sync(now)
         if not self._decide(now).can_start:
             return self._decide(now)

@@ -63,6 +63,18 @@ class DayUsage:
 
 
 @dataclass(frozen=True)
+class ProfileStatus:
+    """One profile on its own, whether or not it is watching (PR-2, PR-3)."""
+
+    profile_id: int
+    remaining_s: float | None  # None = unlimited today
+    can_start: bool  # could this profile start a pick on its own now?
+    reason: TimeUpReason | None  # why not, when it can't
+    session_elapsed_s: float | None  # wall-clock length of this profile's viewing session (WT-3)
+    watching: bool  # one of the current watchers
+
+
+@dataclass(frozen=True)
 class Decision:
     action: Action
     reason: TimeUpReason | None  # set when exhausted/blocked

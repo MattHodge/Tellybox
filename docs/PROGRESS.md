@@ -138,7 +138,7 @@ Plan: `docs/plans/i18n.md`. The foundation was built first, then subagents did t
 The owner reordered the phases on 2026-09-28 (PRD "Build order after v1"): kid profiles, SponsorBlock, channel subscriptions, manual splitting, smart splitting, then the Tellybox Cast receiver. The decisions from that session are PRD A-7..A-11, SB-1..SB-6 and CR-1..CR-8. On 2026-09-29 the owner moved the receiver ahead (it keeps step 13) and inserted the admin API for Home Assistant as step 9. The current order is:
 - 8: profiles;
 - 9: admin API;
-- 13: receiver, deployed; device checks open;
+- 13: receiver, done;
 - 10: SponsorBlock, deployed; device checks open;
 - 11: subscriptions;
 - 12: manual splitting;
@@ -146,11 +146,11 @@ The owner reordered the phases on 2026-09-28 (PRD "Build order after v1"): kid p
 
 ### Resume here (2026-09-30)
 
-Steps 9 and 13 are merged and deployed. What's open is on the owner's side:
+Steps 9 and 13 are done. What's open is on the owner's side:
 
-1. **Step 13, Tellybox receiver (v7):** set the app ID in admin Settings, then run the real-device checks (`docs/plans/step13-receiver.md`, "Real-device checks"). The receiver favicon is in PR #9.
-2. **Step 10, SponsorBlock (v3):** the TV checks in the step 10 entry below.
-3. **Step 8, kid profiles (v2):** the playback checks on the real TV, in `docs/plans/step8-device-checks.md`.
+1. **Step 10, SponsorBlock (v3):** the TV checks in the step 10 entry below.
+2. **Step 8, kid profiles (v2):** the playback checks on the real TV, in `docs/plans/step8-device-checks.md`.
+3. **PR #10** (installation guide: reboot the Chromecast after changing the receiver app) is open.
 
 The next step to build is 11, channel subscriptions (v4).
 
@@ -282,7 +282,7 @@ Sponsor segments are cut out of the file at download through yt-dlp's `--sponsor
   - A redownload of a split video completes without doing anything (SB-6, step 12 should add a message).
   - The admin API's job counts (HA-2) include the daily re-check jobs for a moment.
 
-### 13. Tellybox receiver (v7), deployed; device checks open
+### 13. Tellybox receiver (v7), done
 Moved ahead of SponsorBlock, subscriptions and splitting by the owner on 2026-09-29; it keeps number 13. Plan: `docs/plans/step13-receiver.md` (all of CR-1..CR-8; the spike tries GitHub Pages hosting first, then the home server under a public DNS name). Subagent briefs: `docs/plans/step13-handoff.md`.
 - Contract: migration 006 (`settings.receiver_app_id`), `docs/receiver-protocol.md`, device protocol stubs, the cast state's `receiver` block, the Pages workflow, and the spike pages and script (`tellybox/web/receiver/spike*.html`, `scripts/receiver_spike.py`).
 - Contract merged as PR #2; GitHub Pages publishes `tellybox/web/receiver/` at `…/receiver/`.
@@ -317,10 +317,12 @@ Moved ahead of SponsorBlock, subscriptions and splitting by the owner on 2026-09
   - A wrong app id fails with `RequestFailed` in 0.02 s, which already becomes `ReceiverUnavailable`. The launch timeout stays at 8 s.
 - The seams needed no code changes. The spike pages and script are removed, the installation guide notes HTTP media, and `main` (step 10) is merged into the branch. 1168 tests pass.
 - Merged as PR #8 and deployed (CI run 16). Pages publishes the receiver from `main`.
-- The favicon for `index.html` and `dev.html` is in PR #9. It's a copy of `favicon.svg` next to the pages, refreshed by `scripts/brand.sh`, and a test keeps the two identical.
-- **Open:**
-  - the owner sets the app ID in admin Settings;
-  - then the real-device checks in the plan, with the owner. v7 is done when they pass.
+- **Favicon (PR #9):** a copy of `favicon.svg` next to `index.html` and `dev.html`, refreshed by `scripts/brand.sh`. A test keeps the two identical.
+- **Rollout (2026-09-30):** after the console URL moved from `spike.html` to `index.html`, every launch failed with `CANCELLED` until the Chromecast was rebooted, because it keeps an app's settings until it restarts. The cast service fell back to the Default Media Receiver as designed. PR #10 adds this to the installation guide.
+- **Real-device checks passed (owner, 2026-09-30):** loading with artwork and the corner sky; no stutter (0 dropped frames in every stats line); up next, then autoplay; the sky sinking to dusk; time up, then the night scene; no sky on an unlimited day. The fallback (#6) was seen during the rollout, and ignoring other apps (#8) is unchanged since v1.
+- **Found in the checks: the night hold didn't survive a restart.** A deploy at 13:06 restarted the cast service during the night screen. The deadline lived only in memory, and the page disables the TV's idle timeout, so the receiver stayed up. Fixed in PR #14: an idle receiver with no hold gets a fresh 10-minute one.
+- **Stale admin pages after deploys:** `/static` and `/admin/static` had no `Cache-Control`, so browsers cached the scripts and styles heuristically until a forced refresh. Fixed in PR #13: both now use `no-cache` and revalidate with their ETag.
+- **Docs:** the README and the installation guide cover SponsorBlock and the receiver (PR #11), and the README has TV screenshots rendered from `dev.html` (PR #12).
 - **Open follow-ups from the subagents:**
   - The receiver shows the loading layer from LOAD_START even before a `loading` message (documented in the protocol). The corner sky is drawn at night while a last episode finishes after time's up.
   - A parent stop-now keeps the night screen only when the day is already out of time; otherwise it quits as in v1.
@@ -332,7 +334,7 @@ Moved ahead of SponsorBlock, subscriptions and splitting by the owner on 2026-09
 
 ## Open decisions / follow-ups
 
-- Branding: the receiver favicon is in PR #9. Upload `docs/images/brand/social-preview.png` as the repository's social preview (GitHub settings, by hand).
+- Branding: upload `docs/images/brand/social-preview.png` as the repository's social preview (GitHub settings, by hand).
 - Kid app images are cached for an hour (`max-age=3600`), so replaced artwork or thumbnails can take up to an hour to show on kids' devices. The admin images revalidate; consider `no-cache` for the kid app too.
 - Show order: the PRD asks only for episode order, so shows keep their creation order; there is no admin control for it.
 - The admin test suite is slower (full run ~60 s, was ~25 s), mostly from argon2 hashing in each sign-in; lower the hash cost in tests if it bothers.

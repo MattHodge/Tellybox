@@ -23,7 +23,7 @@ DEFAULT_MEDIA_RECEIVER = "CC1AD845"
 # The Tellybox receiver (v7, CR-1..CR-8). Its app id comes from settings.receiver_app_id; the
 # messages on this namespace are in docs/receiver-protocol.md.
 RECEIVER_NAMESPACE = "urn:x-cast:tellybox"
-RECEIVER_LAUNCH_TIMEOUT_S = 8.0  # launch + first status; the spike (S8, S9) may tune it
+RECEIVER_LAUNCH_TIMEOUT_S = 8.0  # launch + first status; a cold launch takes ~3 s on the 1st gen (spike S1)
 
 
 class PlayerState(StrEnum):
@@ -132,6 +132,10 @@ class CastDevice(Protocol):
 
     async def stop(self) -> None:
         """Stop media and quit the receiver app, so the TV returns to its idle screen."""
+        ...
+
+    async def stop_media(self) -> None:
+        """Stop the media but keep the receiver app running (the night screen after time's up, CR-3)."""
         ...
 
     async def request_status(self) -> None:

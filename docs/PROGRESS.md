@@ -139,7 +139,7 @@ The owner reordered the phases on 2026-09-28 (PRD "Build order after v1"): kid p
 - 8: profiles;
 - 9: admin API;
 - 13: receiver, in progress;
-- 10: SponsorBlock, built on `step10/sponsorblock`;
+- 10: SponsorBlock, deployed; device checks open;
 - 11: subscriptions;
 - 12: manual splitting;
 - 14: smart splitting.
@@ -229,7 +229,7 @@ Inserted as step 9 by the owner on 2026-09-29: Phase 0 of the plan "Tellybox × 
   - opt-in zeroconf advertisement (`_tellybox._tcp`);
   - F6: settings `GET`/`PATCH`, daily history, and publishing held downloads from Home Assistant (opt-in).
 
-### 10. SponsorBlock (v3), built on `step10/sponsorblock`; PR, deploy and device checks open
+### 10. SponsorBlock (v3), deployed; device checks open
 Sponsor segments are cut out of the file at download through yt-dlp's `--sponsorblock-remove`, with the categories set in Settings and per show, a 7-day daily re-check, and an episode page that lists the removed segments (SB-1..SB-5).
 - Plan `docs/plans/step10-sponsorblock.md`, approved 2026-09-30. Subagent briefs: `docs/plans/step10-handoff.md`.
 - **Decisions (owner, 2026-09-30):**
@@ -262,13 +262,21 @@ Sponsor segments are cut out of the file at download through yt-dlp's `--sponsor
   - 20.2 s removed; the file probes at 164.9 s, against 164.8 s expected;
   - no invented chapter;
   - with the API unreachable, yt-dlp exits 1 with "Preprocessing: Unable to communicate with SponsorBlock API", which the wrapper detects.
+- Merged as PR #6 and deployed (version 2026.09.30.13) on 2026-09-30. The worker log shows migration 008 applied.
+- **GHCR, 2026-09-30:** the first deploy failed silently. The server's pull was denied, but the workflow stayed green, so the old version kept running.
+  - Cause: the server's registry token had been renewed as a fine-grained token, and GHCR accepts only classic tokens with `read:packages`.
+  - Fix: the `tellybox` package is now public. The repository is public too, so the server needs no token.
+  - The package is still linked to the archived `Tellybox-private`, which is why its settings page is read-only. To change a setting, unarchive `Tellybox-private` for a moment.
+  - Follow-ups:
+    - the deploy script now stops on a failed pull (`set -e`);
+    - the GHCR login task and `github_pat` in the `tellybox` role in middle-earth-iac can go.
 - **Real-device checks (owner, after deploy):**
   1. Add a video with sponsor segments. Its episode page lists them and the time removed. Play it on the TV: the joins are clean, with no sponsor left beyond about two seconds.
   2. Watch a cut episode partway, then press "Download again without SponsorBlock". While it's playing, the job waits. After stopping and redownloading, resume: it continues at the same moment in the video (the earlier cuts are now back in the file).
   3. Turn SponsorBlock off for one show and add a video: its page says it's off, and the file is uncut.
   4. The next morning, the jobs page shows the "Check SponsorBlock" jobs that ran in the 03:00 slot.
 - **Open:**
-  - Open the PR and deploy.
+  - the owner's real-device checks above. v3 is done when they pass.
   - A redownload of a split video completes without doing anything (SB-6, step 12 should add a message).
   - The admin API's job counts (HA-2) include the daily re-check jobs for a moment.
 

@@ -152,7 +152,7 @@ Steps 9 and 13 are done. What's open is on the owner's side:
 2. **Step 8, kid profiles (v2):** the playback checks on the real TV, in `docs/plans/step8-device-checks.md`.
 3. **PR #10** (installation guide: reboot the Chromecast after changing the receiver app) is open.
 
-On 2026-10-01 the owner chose to build splitting next (steps 12 and 14), ahead of 11, channel subscriptions (v4).
+On 2026-10-01 the owner chose to build splitting next (steps 12 and 14), ahead of 11, channel subscriptions (v4). Step 12 is done, and step 14 is deployed with its v6 gate open. **The next step to build is 11, channel subscriptions (v4).**
 
 ### 12. Manual splitting (v5), done
 Plan `docs/plans/step12-14-splitting.md` (steps 12 and 14), approved 2026-10-01. Subagent briefs: `docs/plans/step12-handoff.md`. Branch `step12/manual-split`.
@@ -318,8 +318,10 @@ Sponsor segments are cut out of the file at download through yt-dlp's `--sponsor
   - A redownload of a split video completes without doing anything (SB-6, step 12 should add a message).
   - The admin API's job counts (HA-2) include the daily re-check jobs for a moment.
 
-### 14. Smart splitting (v6), merged after the step 12 checks passed; v6 gate open
-Plan: the step 14 part of `docs/plans/step12-14-splitting.md`. Briefs: `docs/plans/step14-handoff.md`. Branch `step14/smart-split`, merged as PR #17 on 2026-10-01.
+### 14. Smart splitting (v6), deployed; v6 gate open
+Plan: the step 14 part of `docs/plans/step12-14-splitting.md`. Briefs: `docs/plans/step14-handoff.md`. Branch `step14/smart-split`, merged as PR #17 on 2026-10-01, after the step 12 TV checks passed.
+- **Deployed** as version 2026.10.01.27. CI ran 1346 tests with none skipped, so the OCR tests ran with Tesseract installed.
+- **Image size:** 294 → 467 MB compressed (amd64), from OpenCV, Tesseract with three languages, and imagehash's scipy and PyWavelets. Only dHash is used, which is a few lines of numpy, so dropping imagehash is a possible trim.
 - **Decisions (owner, 2026-10-01):**
   - A-22: a compilation picked up by automatic detection stays hidden until its split is approved or it's published whole.
   - No PySceneDetect: version 0.7 requires the desktop OpenCV build. Scene changes come from ffmpeg `scdet`, and black frames from `blackdetect`. The CLAUDE.md stack line and the PRD are updated.
@@ -360,6 +362,7 @@ Plan: the step 14 part of `docs/plans/step12-14-splitting.md`. Briefs: `docs/pla
 - **Owner's local check** (2026-10-01, a local web service and worker with a stub cast service, `.local-test/`, git-ignored): detection on real videos "working well enough".
 - **Open:**
   - the owner's v6 gate on the deployed version: detection accepted on two real shows;
+  - an ES-10 check on the server: a new compilation in a show with auto-detect stays hidden, appears in "Splits to review", and its parts appear once approved;
   - an auto-detected compilation waits hidden in review, then plays split on the TV;
   - OCR on real title cards;
   - the image size growth from OpenCV and Tesseract, to measure on the first CI build;

@@ -369,7 +369,7 @@ Plan: the step 14 part of `docs/plans/step12-14-splitting.md`. Briefs: `docs/pla
   - a failed detect job leaves an auto-held compilation hidden until "Publish as one video" (by design);
   - no dashboard count for proposals to review (optional, skipped).
 
-### Receiver resilience (CR-6 hardening), built; device checks open
+### Receiver resilience (CR-6 hardening), deployed; device checks open
 Plan: `docs/plans/receiver-resilience.md` (approved 2026-10-01). Branch `receiver/resilience`. It follows the 2026-10-01 incident, where the TV sat on the Default Media Receiver from the start of a pick and the reason was lost with the container logs.
 - **Event log:** migration 011 (`receiver_event`), written by the cast service through `store.record_receiver_event` and purged by the worker after 21 days. Kinds: `launch_ok`, `launch_failed`, `refused`, `fallback`, `lost`, `recovered`, `recover_failed`, `page_error`. The cast state's `receiver` block gains `failures_24h`, `launches_24h`, `last_failure` and `refused` (`docs/cast-api.md`).
 - **Retry:** a failed launch quits the half-started app, waits 1 s and tries again with 15 s instead of 8 s. A refusal (an immediate `RequestFailed`, or the launch error `CANCELLED`) isn't retried.
@@ -377,7 +377,10 @@ Plan: `docs/plans/receiver-resilience.md` (approved 2026-10-01). Branch `receive
 - **Mid-episode recovery:** our app vanishing (no app or Backdrop, with no other app within 10 s) relaunches the episode once, at the estimated position, in the same watch session. Another app is still a take-over (WT-9). No recovery when time is up, after our own stop, in the night hold, after a reconnect, or a second time.
 - **Receiver page:** `sdkload.js` retries the Cast SDK up to 3 times (2 s, 4 s); `hello` gains `sdk_attempts` and `load_ms` (additive, `docs/receiver-protocol.md`). The page change goes live with the next Pages publish.
 - **Dashboard:** the TV receiver line shows the last problem with its time, and a hint to restart the Chromecast after a refusal. nl and de.
-- **Tests:** The fake device gained slow and refused launches, a half-started app, `quit_app` and `vanish()`; `CastController` takes an injectable `sleep`.
+- **Tests:** 1385 pass. The fake device gained slow and refused launches, a half-started app, `quit_app` and `vanish()`; `CastController` takes an injectable `sleep`.
+- Built by one Sonnet subagent, from the plan, and reviewed by the controller.
+- **Review fix:** the subagent's recovery waited only 3 s for another app before relaunching ours. On the 1st gen, YouTube's cold start can take longer than that, and relaunching ours would cut that cast off (WT-9). The wait is now 10 s, with a test for another app arriving 8 s after ours vanished.
+- Merged as PR #19 and deployed (version 2026.10.01.30) on 2026-10-01; Pages republished the receiver page.
 - **Device checks (owner):**
   1. A normal pick still starts on the Tellybox receiver, cold and warm.
   2. Forced fallback: set a wrong receiver app ID in Settings, pick (Default Media Receiver; the dashboard shows the problem), restore the ID, pick again (back on the Tellybox receiver, no 30-minute wait).

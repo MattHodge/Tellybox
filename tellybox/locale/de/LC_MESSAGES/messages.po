@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Tellybox VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 12:11+0200\n"
+"POT-Creation-Date: 2026-10-01 09:51+0200\n"
 "PO-Revision-Date: 2026-09-28 17:24+0200\n"
 "Last-Translator: Tellybox\n"
 "Language: de\n"
@@ -91,10 +91,55 @@ msgstr "Bild ist zu groß (max. 5 MB)"
 msgid "file is not a JPEG, PNG or WebP image"
 msgstr "Datei ist kein JPEG-, PNG- oder WebP-Bild"
 
-#: tellybox/jobs.py:202
+#: tellybox/jobs.py:204
 #, python-format
 msgid "job %(id)d is %(status)s, only failed jobs can be retried"
 msgstr "Aufgabe %(id)d ist %(status)s; nur fehlgeschlagene Aufgaben lassen sich wiederholen"
+
+#: tellybox/splitting.py:110 tellybox/web/admin/js_strings.py:67
+msgid "The plan has no parts."
+msgstr "Der Plan hat keine Teile."
+
+#: tellybox/splitting.py:112 tellybox/web/admin/js_strings.py:68
+#, python-format
+msgid "A video can be split into at most %(n)d parts."
+msgstr "Ein Video kann in höchstens %(n)d Teile geteilt werden."
+
+#: tellybox/splitting.py:114 tellybox/web/admin/js_strings.py:69
+msgid "The first part must start at the beginning of the video."
+msgstr "Der erste Teil muss am Anfang des Videos beginnen."
+
+#: tellybox/splitting.py:116 tellybox/web/admin/js_strings.py:70
+msgid "The last part must end at the end of the video."
+msgstr "Der letzte Teil muss am Ende des Videos enden."
+
+#: tellybox/splitting.py:119 tellybox/splitting.py:122
+#: tellybox/web/admin/js_strings.py:71
+msgid "Parts must follow each other without gaps."
+msgstr "Die Teile müssen lückenlos aufeinander folgen."
+
+#: tellybox/splitting.py:124 tellybox/web/admin/js_strings.py:72
+#, python-format
+msgid "Titles can be at most %(n)d characters."
+msgstr "Titel dürfen höchstens %(n)d Zeichen lang sein."
+
+#: tellybox/splitting.py:132 tellybox/web/admin/js_strings.py:73
+#, python-format
+msgid "Each part must be at least %(n)d seconds long."
+msgstr "Jeder Teil muss mindestens %(n)d Sekunden lang sein."
+
+#: tellybox/splitting.py:135 tellybox/web/admin/js_strings.py:74
+msgid "Keep at least one part."
+msgstr "Behalte mindestens einen Teil."
+
+#: tellybox/splitting.py:137 tellybox/web/admin/js_strings.py:75
+msgid "Add a cut, or leave out a part, before approving."
+msgstr "Füge einen Schnitt hinzu oder lass einen Teil weg, bevor du freigibst."
+
+#: tellybox/splitting.py:167 tellybox/web/admin/split_pages.py:126
+#: tellybox/web/admin/split_pages.py:131
+msgid "The plan is malformed."
+msgstr "Der Plan ist ungültig."
 
 #: tellybox/sponsorblock.py:20
 msgid "Sponsor"
@@ -243,30 +288,30 @@ msgstr "Die Auswahl passt nicht zur Vorschau; lade sie neu."
 msgid "Tick at least one video to add."
 msgstr "Wähle mindestens ein Video aus."
 
-#: tellybox/web/admin/common.py:53 tellybox/web/admin/js_strings.py:48
+#: tellybox/web/admin/common.py:53 tellybox/web/admin/js_strings.py:77
 #, python-format
 msgid "%(hours)s h %(minutes)s min"
 msgstr "%(hours)s Std. %(minutes)s min"
 
-#: tellybox/web/admin/common.py:54 tellybox/web/admin/js_strings.py:49
+#: tellybox/web/admin/common.py:54 tellybox/web/admin/js_strings.py:78
 #: tellybox/web/admin/templates/history.html:40
 #, python-format
 msgid "%(minutes)s min"
 msgstr "%(minutes)s min"
 
-#: tellybox/web/admin/common.py:65 tellybox/web/admin/js_strings.py:51
+#: tellybox/web/admin/common.py:65 tellybox/web/admin/js_strings.py:80
 msgid "KB"
 msgstr "KB"
 
-#: tellybox/web/admin/common.py:65 tellybox/web/admin/js_strings.py:52
+#: tellybox/web/admin/common.py:65 tellybox/web/admin/js_strings.py:81
 msgid "MB"
 msgstr "MB"
 
-#: tellybox/web/admin/common.py:65 tellybox/web/admin/js_strings.py:53
+#: tellybox/web/admin/common.py:65 tellybox/web/admin/js_strings.py:82
 msgid "GB"
 msgstr "GB"
 
-#: tellybox/web/admin/common.py:75 tellybox/web/admin/js_strings.py:50
+#: tellybox/web/admin/common.py:75 tellybox/web/admin/js_strings.py:79
 #, python-format
 msgid "%(size)s B"
 msgstr "%(size)s B"
@@ -352,42 +397,57 @@ msgstr "SponsorBlock prüfen"
 msgid "Download again"
 msgstr "Erneut herunterladen"
 
-#: tellybox/web/admin/jobs_page.py:93
+#: tellybox/web/admin/jobs_page.py:45 tellybox/web/admin/js_strings.py:42
+#: tellybox/web/admin/templates/_labels.html:18
+#: tellybox/web/admin/templates/episode.html:21
+#: tellybox/web/admin/templates/split.html:2
+#: tellybox/web/admin/templates/split.html:9
+msgid "Split into episodes"
+msgstr "In Folgen aufteilen"
+
+#: tellybox/web/admin/jobs_page.py:46 tellybox/web/admin/js_strings.py:43
+#: tellybox/web/admin/templates/_labels.html:18
+msgid "Find title cards"
+msgstr "Titelkarten finden"
+
+#: tellybox/web/admin/jobs_page.py:94
 #, python-format
 msgid "Job %(id)d queued for retry"
 msgstr "Aufgabe %(id)d wird erneut versucht"
 
-#: tellybox/web/admin/jobs_page.py:98
+#: tellybox/web/admin/jobs_page.py:99
 msgid "yt-dlp update queued"
 msgstr "yt-dlp-Update eingeplant"
 
-#: tellybox/web/admin/jobs_page.py:98
+#: tellybox/web/admin/jobs_page.py:99
 msgid "An update is already pending"
 msgstr "Ein Update ist schon eingeplant"
 
 #: tellybox/web/admin/js_strings.py:16
-#: tellybox/web/admin/templates/_labels.html:21
+#: tellybox/web/admin/templates/_labels.html:28
 msgid "connecting"
 msgstr "verbindet…"
 
 #: tellybox/web/admin/js_strings.py:17
-#: tellybox/web/admin/templates/_labels.html:21
+#: tellybox/web/admin/templates/_labels.html:28
 msgid "connected"
 msgstr "verbunden"
 
 #: tellybox/web/admin/js_strings.py:18
-#: tellybox/web/admin/templates/_labels.html:21
+#: tellybox/web/admin/templates/_labels.html:28
 msgid "lost"
 msgstr "unterbrochen"
 
 #: tellybox/web/admin/js_strings.py:19
 #: tellybox/web/admin/templates/_labels.html:12
-#: tellybox/web/admin/templates/_labels.html:22
+#: tellybox/web/admin/templates/_labels.html:24
+#: tellybox/web/admin/templates/_labels.html:29
+#: tellybox/web/admin/templates/split.html:27
 msgid "failed"
 msgstr "fehlgeschlagen"
 
 #: tellybox/web/admin/js_strings.py:20
-#: tellybox/web/admin/templates/_labels.html:22
+#: tellybox/web/admin/templates/_labels.html:29
 msgid "disconnected"
 msgstr "getrennt"
 
@@ -397,22 +457,22 @@ msgid "unreachable"
 msgstr "nicht erreichbar"
 
 #: tellybox/web/admin/js_strings.py:22
-#: tellybox/web/admin/templates/_labels.html:27
+#: tellybox/web/admin/templates/_labels.html:34
 msgid "loading"
 msgstr "startet…"
 
 #: tellybox/web/admin/js_strings.py:23
-#: tellybox/web/admin/templates/_labels.html:27
+#: tellybox/web/admin/templates/_labels.html:34
 msgid "playing"
 msgstr "läuft"
 
 #: tellybox/web/admin/js_strings.py:24
-#: tellybox/web/admin/templates/_labels.html:27
+#: tellybox/web/admin/templates/_labels.html:34
 msgid "buffering"
 msgstr "lädt…"
 
 #: tellybox/web/admin/js_strings.py:25
-#: tellybox/web/admin/templates/_labels.html:28
+#: tellybox/web/admin/templates/_labels.html:35
 msgid "paused"
 msgstr "pausiert"
 
@@ -489,31 +549,106 @@ msgstr "Standard-Medienempfänger"
 msgid "Default Media Receiver (Tellybox receiver unavailable until %(time)s: %(reason)s)"
 msgstr "Standard-Medienempfänger (Tellybox-Empfänger nicht verfügbar bis %(time)s: %(reason)s)"
 
-#: tellybox/web/admin/js_strings.py:43
+#: tellybox/web/admin/js_strings.py:45
 #: tellybox/web/admin/templates/_labels.html:11
+#: tellybox/web/admin/templates/_labels.html:23
 msgid "queued"
 msgstr "wartet"
 
-#: tellybox/web/admin/js_strings.py:44
+#: tellybox/web/admin/js_strings.py:46
 #: tellybox/web/admin/templates/_labels.html:11
 msgid "downloading"
 msgstr "lädt herunter"
 
-#: tellybox/web/admin/js_strings.py:45
+#: tellybox/web/admin/js_strings.py:47
 #: tellybox/web/admin/templates/_labels.html:11
 msgid "processing"
 msgstr "wird verarbeitet"
 
-#: tellybox/web/admin/js_strings.py:46
+#: tellybox/web/admin/js_strings.py:48
 #: tellybox/web/admin/templates/_labels.html:12
 msgid "ready"
 msgstr "bereit"
 
+#: tellybox/web/admin/js_strings.py:50
+#, python-format
+msgid "Part %(n)d"
+msgstr "Teil %(n)d"
+
+#: tellybox/web/admin/js_strings.py:51
+msgid "Keep"
+msgstr "Behalten"
+
+#: tellybox/web/admin/js_strings.py:52
+msgid "Left out"
+msgstr "Weggelassen"
+
+#: tellybox/web/admin/js_strings.py:53
+#, python-format
+msgid "Cut at %(time)s"
+msgstr "Schnitt bei %(time)s"
+
 #: tellybox/web/admin/js_strings.py:54
+msgid "Go to"
+msgstr "Springe zu"
+
+#: tellybox/web/admin/js_strings.py:55
+#, python-format
+msgid "Go to part %(n)d at %(time)s"
+msgstr "Springe zu Teil %(n)d bei %(time)s"
+
+#: tellybox/web/admin/js_strings.py:56
+msgid "Remove cut"
+msgstr "Schnitt entfernen"
+
+#: tellybox/web/admin/js_strings.py:57
+#: tellybox/web/admin/templates/library.html:90
+msgid "Title"
+msgstr "Titel"
+
+#: tellybox/web/admin/js_strings.py:58
+msgid "Title (optional)"
+msgstr "Titel (optional)"
+
+#: tellybox/web/admin/js_strings.py:59
+#, python-format
+msgid "Move the cut back by %(amount)s s"
+msgstr "Schnitt %(amount)s s früher setzen"
+
+#: tellybox/web/admin/js_strings.py:60
+#, python-format
+msgid "Move the cut forward by %(amount)s s"
+msgstr "Schnitt %(amount)s s später setzen"
+
+#: tellybox/web/admin/js_strings.py:61
+msgid "Saving…"
+msgstr "Speichern…"
+
+#: tellybox/web/admin/js_strings.py:62
+msgid "Saved"
+msgstr "Gespeichert"
+
+#: tellybox/web/admin/js_strings.py:63
+msgid "Saving failed. Your changes are not saved yet."
+msgstr "Speichern fehlgeschlagen. Deine Änderungen sind noch nicht gespeichert."
+
+#: tellybox/web/admin/js_strings.py:64
+msgid "This plan can't be changed any more."
+msgstr "Dieser Plan kann nicht mehr geändert werden."
+
+#: tellybox/web/admin/js_strings.py:65
+msgid "A cut needs at least half a second on both sides."
+msgstr "Ein Schnitt braucht auf beiden Seiten mindestens eine halbe Sekunde."
+
+#: tellybox/web/admin/js_strings.py:66
+msgid "Replace your cuts with the video's chapters?"
+msgstr "Deine Schnitte durch die Kapitel des Videos ersetzen?"
+
+#: tellybox/web/admin/js_strings.py:83
 msgid "TB"
 msgstr "TB"
 
-#: tellybox/web/admin/js_strings.py:59
+#: tellybox/web/admin/js_strings.py:88
 #: tellybox/web/admin/templates/add.html:116
 #, python-format
 msgid "Add %(num)d video"
@@ -521,7 +656,7 @@ msgid_plural "Add %(num)d videos"
 msgstr[0] "%(num)d Video hinzufügen"
 msgstr[1] "%(num)d Videos hinzufügen"
 
-#: tellybox/web/admin/js_strings.py:60
+#: tellybox/web/admin/js_strings.py:89
 #: tellybox/web/admin/templates/dashboard.html:99
 #, python-format
 msgid "%(num)d failed job"
@@ -529,9 +664,16 @@ msgid_plural "%(num)d failed jobs"
 msgstr[0] "%(num)d fehlgeschlagene Aufgabe"
 msgstr[1] "%(num)d fehlgeschlagene Aufgaben"
 
+#: tellybox/web/admin/js_strings.py:90
+#, python-format
+msgid "Cutting takes up to about %(num)d minute"
+msgid_plural "Cutting takes up to about %(num)d minutes"
+msgstr[0] "Das Schneiden dauert höchstens etwa %(num)d Minute"
+msgstr[1] "Das Schneiden dauert höchstens etwa %(num)d Minuten"
+
 #: tellybox/web/admin/library_pages.py:95
 #: tellybox/web/admin/templates/add.html:73
-#: tellybox/web/admin/templates/library.html:101
+#: tellybox/web/admin/templates/library.html:119
 msgid "Playlist"
 msgstr "Playlist"
 
@@ -633,28 +775,32 @@ msgstr "Gib „delete“ ein, um zu bestätigen."
 msgid "Episode deleted."
 msgstr "Folge gelöscht."
 
-#: tellybox/web/admin/library_pages.py:369
+#: tellybox/web/admin/library_pages.py:384
 msgid "This episode has no downloaded video to download again."
 msgstr "Diese Folge hat kein heruntergeladenes Video, das erneut heruntergeladen werden könnte."
 
-#: tellybox/web/admin/library_pages.py:374
+#: tellybox/web/admin/library_pages.py:389
+msgid "This video is split into episodes, so it can't be downloaded again."
+msgstr "Dieses Video ist in Folgen aufgeteilt und kann deshalb nicht erneut heruntergeladen werden."
+
+#: tellybox/web/admin/library_pages.py:391
 msgid "This video is already being checked or downloaded again."
 msgstr "Dieses Video wird bereits geprüft oder erneut heruntergeladen."
 
-#: tellybox/web/admin/library_pages.py:376
+#: tellybox/web/admin/library_pages.py:393
 msgid "This video can't be downloaded again right now."
 msgstr "Dieses Video kann gerade nicht erneut heruntergeladen werden."
 
-#: tellybox/web/admin/library_pages.py:377
+#: tellybox/web/admin/library_pages.py:394
 msgid "Queued: the video will be downloaded again."
 msgstr "In der Warteschlange: Das Video wird erneut heruntergeladen."
 
-#: tellybox/web/admin/library_pages.py:404
-#: tellybox/web/admin/library_pages.py:419
+#: tellybox/web/admin/library_pages.py:421
+#: tellybox/web/admin/library_pages.py:436
 msgid "Thumbnail updated."
 msgstr "Vorschaubild aktualisiert."
 
-#: tellybox/web/admin/library_pages.py:411
+#: tellybox/web/admin/library_pages.py:428
 msgid "This episode's video file is missing."
 msgstr "Die Videodatei dieser Folge fehlt."
 
@@ -776,6 +922,43 @@ msgstr "Cast-Dienst nicht erreichbar; nichts wurde geändert."
 msgid "Chromecast selected."
 msgstr "Chromecast ausgewählt."
 
+#: tellybox/web/admin/split_pages.py:136 tellybox/web/admin/split_pages.py:161
+#: tellybox/web/admin/split_pages.py:176
+msgid "The video is being cut, so the plan can't change now."
+msgstr "Das Video wird gerade geschnitten, daher kann der Plan jetzt nicht geändert werden."
+
+#: tellybox/web/admin/split_pages.py:139 tellybox/web/admin/split_pages.py:163
+msgid "The original video isn't available, so it can't be split."
+msgstr "Das Originalvideo ist nicht verfügbar und kann deshalb nicht aufgeteilt werden."
+
+#: tellybox/web/admin/split_pages.py:157
+msgid "Save a plan first."
+msgstr "Speichere zuerst einen Plan."
+
+#: tellybox/web/admin/split_pages.py:166
+msgid "Splitting is queued. The parts appear when it's done."
+msgstr "Das Aufteilen ist eingeplant. Die Teile erscheinen, sobald es fertig ist."
+
+#: tellybox/web/admin/split_pages.py:179
+msgid "Split plan discarded."
+msgstr "Schnittplan verworfen."
+
+#: tellybox/web/admin/templates/_labels.html:23
+msgid "draft"
+msgstr "Entwurf"
+
+#: tellybox/web/admin/templates/_labels.html:23
+msgid "to review"
+msgstr "zu prüfen"
+
+#: tellybox/web/admin/templates/_labels.html:23
+msgid "cutting"
+msgstr "wird geschnitten"
+
+#: tellybox/web/admin/templates/_labels.html:24
+msgid "done"
+msgstr "fertig"
+
 #: tellybox/web/admin/templates/add.html:3
 #: tellybox/web/admin/templates/add.html:63
 #: tellybox/web/admin/templates/base.html:19
@@ -822,6 +1005,7 @@ msgstr "Aufgaben"
 #: tellybox/web/admin/templates/library.html:3
 #: tellybox/web/admin/templates/library.html:6
 #: tellybox/web/admin/templates/show.html:5
+#: tellybox/web/admin/templates/split.html:8
 msgid "Library"
 msgstr "Mediathek"
 
@@ -873,7 +1057,7 @@ msgid "showing the first %(shown)s of %(total)s videos"
 msgstr "die ersten %(shown)s von %(total)s Videos"
 
 #: tellybox/web/admin/templates/add.html:78
-#: tellybox/web/admin/templates/library.html:108
+#: tellybox/web/admin/templates/library.html:126
 #, python-format
 msgid "%(num)d video"
 msgid_plural "%(num)d videos"
@@ -1008,78 +1192,93 @@ msgid "System"
 msgstr "System"
 
 #: tellybox/web/admin/templates/episode.html:12
-#: tellybox/web/admin/templates/library.html:23
+#: tellybox/web/admin/templates/library.html:41
 #: tellybox/web/admin/templates/show.html:115
+#: tellybox/web/admin/templates/split.html:34
 msgid "Hidden"
 msgstr "Ausgeblendet"
 
-#: tellybox/web/admin/templates/episode.html:20
+#: tellybox/web/admin/templates/episode.html:18
+#, python-format
+msgid "Part %(n)d of %(of)d of %(title)s"
+msgstr "Teil %(n)d von %(of)d von %(title)s"
+
+#: tellybox/web/admin/templates/episode.html:21
+msgid "Split again"
+msgstr "Erneut aufteilen"
+
+#: tellybox/web/admin/templates/episode.html:23
+#: tellybox/web/admin/templates/split.html:15
+msgid "The original video was deleted after splitting, so it can't be split again."
+msgstr "Das Originalvideo wurde nach dem Aufteilen gelöscht und kann deshalb nicht erneut aufgeteilt werden."
+
+#: tellybox/web/admin/templates/episode.html:30
 #: tellybox/web/admin/templates/settings.html:73
 #: tellybox/web/admin/templates/show.html:34
 msgid "SponsorBlock"
 msgstr "SponsorBlock"
 
-#: tellybox/web/admin/templates/episode.html:25
+#: tellybox/web/admin/templates/episode.html:35
 msgid "Category"
 msgstr "Kategorie"
 
-#: tellybox/web/admin/templates/episode.html:25
+#: tellybox/web/admin/templates/episode.html:35
 #: tellybox/web/admin/templates/history.html:31
 msgid "Start"
 msgstr "Beginn"
 
-#: tellybox/web/admin/templates/episode.html:25
+#: tellybox/web/admin/templates/episode.html:35
 #: tellybox/web/admin/templates/history.html:31
 msgid "End"
 msgstr "Ende"
 
-#: tellybox/web/admin/templates/episode.html:33
+#: tellybox/web/admin/templates/episode.html:43
 #, python-format
 msgid "Removed in total: %(time)s"
 msgstr "Insgesamt entfernt: %(time)s"
 
-#: tellybox/web/admin/templates/episode.html:34
+#: tellybox/web/admin/templates/episode.html:44
 msgid "Times are on the original video."
 msgstr "Die Zeiten beziehen sich auf das Originalvideo."
 
-#: tellybox/web/admin/templates/episode.html:36
+#: tellybox/web/admin/templates/episode.html:46
 msgid "No segments found."
 msgstr "Keine Segmente gefunden."
 
-#: tellybox/web/admin/templates/episode.html:38
+#: tellybox/web/admin/templates/episode.html:48
 msgid "SponsorBlock couldn't be reached; it will be checked again."
 msgstr "SponsorBlock war nicht erreichbar; es wird später erneut geprüft."
 
-#: tellybox/web/admin/templates/episode.html:40
+#: tellybox/web/admin/templates/episode.html:50
 msgid "SponsorBlock is off for this show."
 msgstr "SponsorBlock ist für diese Serie ausgeschaltet."
 
-#: tellybox/web/admin/templates/episode.html:42
+#: tellybox/web/admin/templates/episode.html:52
 msgid "Downloaded again without SponsorBlock."
 msgstr "Erneut ohne SponsorBlock heruntergeladen."
 
-#: tellybox/web/admin/templates/episode.html:46
+#: tellybox/web/admin/templates/episode.html:56
 #, python-format
 msgid "Checked daily until %(date)s."
 msgstr "Wird täglich geprüft bis %(date)s."
 
-#: tellybox/web/admin/templates/episode.html:50
+#: tellybox/web/admin/templates/episode.html:60
 msgid "Being downloaded again"
 msgstr "Wird erneut heruntergeladen"
 
-#: tellybox/web/admin/templates/episode.html:52
-msgid "This video is split into episodes, so it can't be downloaded again."
-msgstr "Dieses Video ist in Folgen aufgeteilt und kann deshalb nicht erneut heruntergeladen werden."
+#: tellybox/web/admin/templates/episode.html:62
+msgid "This video was split into episodes; SponsorBlock no longer re-checks it."
+msgstr "Dieses Video wurde in Folgen aufgeteilt; SponsorBlock prüft es nicht mehr."
 
-#: tellybox/web/admin/templates/episode.html:56
+#: tellybox/web/admin/templates/episode.html:66
 msgid "Download this video again without SponsorBlock? The file is replaced; the resume position is kept."
 msgstr "Dieses Video erneut ohne SponsorBlock herunterladen? Die Datei wird ersetzt; die Wiedergabeposition bleibt erhalten."
 
-#: tellybox/web/admin/templates/episode.html:58
+#: tellybox/web/admin/templates/episode.html:68
 msgid "Download again without SponsorBlock"
 msgstr "Erneut ohne SponsorBlock herunterladen"
 
-#: tellybox/web/admin/templates/episode.html:64
+#: tellybox/web/admin/templates/episode.html:74
 msgid "Download again with SponsorBlock"
 msgstr "Erneut mit SponsorBlock herunterladen"
 
@@ -1169,7 +1368,7 @@ msgstr "Neues Token"
 
 #: tellybox/web/admin/templates/integrations.html:24
 #: tellybox/web/admin/templates/integrations.html:42
-#: tellybox/web/admin/templates/library.html:37
+#: tellybox/web/admin/templates/library.html:55
 #: tellybox/web/admin/templates/profiles.html:22
 #: tellybox/web/admin/templates/profiles.html:61
 msgid "Name"
@@ -1260,7 +1459,7 @@ msgid "Updated"
 msgstr "Aktualisiert"
 
 #: tellybox/web/admin/templates/jobs.html:18
-#: tellybox/web/admin/templates/library.html:72
+#: tellybox/web/admin/templates/library.html:90
 msgid "Status"
 msgstr "Status"
 
@@ -1272,106 +1471,117 @@ msgstr "Wiederholen"
 msgid "No jobs yet."
 msgstr "Noch keine Aufgaben."
 
-#: tellybox/web/admin/templates/library.html:9
+#: tellybox/web/admin/templates/library.html:10
+msgid "Splits to review"
+msgstr "Aufteilungen zur Prüfung"
+
+#: tellybox/web/admin/templates/library.html:16
+#, python-format
+msgid "%(num)d part"
+msgid_plural "%(num)d parts"
+msgstr[0] "%(num)d Teil"
+msgstr[1] "%(num)d Teile"
+
+#: tellybox/web/admin/templates/library.html:18
+msgid "Open"
+msgstr "Öffnen"
+
+#: tellybox/web/admin/templates/library.html:27
 msgid "Shows"
 msgstr "Serien"
 
-#: tellybox/web/admin/templates/library.html:10
+#: tellybox/web/admin/templates/library.html:28
 #, python-format
 msgid "Total disk use: %(size)s"
 msgstr "Belegt insgesamt: %(size)s"
 
-#: tellybox/web/admin/templates/library.html:18
+#: tellybox/web/admin/templates/library.html:36
 #, python-format
 msgid "%(num)d episode"
 msgid_plural "%(num)d episodes"
 msgstr[0] "%(num)d Folge"
 msgstr[1] "%(num)d Folgen"
 
-#: tellybox/web/admin/templates/library.html:19
+#: tellybox/web/admin/templates/library.html:37
 #, python-format
 msgid "%(count)s hidden"
 msgstr "%(count)s ausgeblendet"
 
-#: tellybox/web/admin/templates/library.html:24
+#: tellybox/web/admin/templates/library.html:42
 msgid "Autoplay"
 msgstr "Automatisch weiter"
 
-#: tellybox/web/admin/templates/library.html:24
+#: tellybox/web/admin/templates/library.html:42
 msgid "No autoplay"
 msgstr "Nicht automatisch weiter"
 
-#: tellybox/web/admin/templates/library.html:30
+#: tellybox/web/admin/templates/library.html:48
 msgid "No shows yet. Add a video first."
 msgstr "Noch keine Serien. Füge zuerst ein Video hinzu."
 
-#: tellybox/web/admin/templates/library.html:35
+#: tellybox/web/admin/templates/library.html:53
 msgid "New show"
 msgstr "Neue Serie"
 
-#: tellybox/web/admin/templates/library.html:38
+#: tellybox/web/admin/templates/library.html:56
 msgid "Show name"
 msgstr "Name der Serie"
 
-#: tellybox/web/admin/templates/library.html:40
+#: tellybox/web/admin/templates/library.html:58
 msgid "Create"
 msgstr "Anlegen"
 
-#: tellybox/web/admin/templates/library.html:46
+#: tellybox/web/admin/templates/library.html:64
 msgid "Merge shows"
 msgstr "Serien zusammenführen"
 
-#: tellybox/web/admin/templates/library.html:47
+#: tellybox/web/admin/templates/library.html:65
 #, python-format
 msgid "Every episode and source video of \"%(source)s\" moves to the end of \"%(target)s\", and \"%(source)s\" is deleted. This cannot be undone."
 msgstr "Alle Folgen und Quellvideos aus „%(source)s“ kommen ans Ende von „%(target)s“, und „%(source)s“ wird gelöscht. Das lässt sich nicht rückgängig machen."
 
-#: tellybox/web/admin/templates/library.html:47
-#: tellybox/web/admin/templates/library.html:50
+#: tellybox/web/admin/templates/library.html:65
+#: tellybox/web/admin/templates/library.html:68
 msgid "Into"
 msgstr "Ziel"
 
-#: tellybox/web/admin/templates/library.html:47
-#: tellybox/web/admin/templates/library.html:55
-#: tellybox/web/admin/templates/library.html:63
+#: tellybox/web/admin/templates/library.html:65
+#: tellybox/web/admin/templates/library.html:73
+#: tellybox/web/admin/templates/library.html:81
 msgid "From"
 msgstr "Quelle"
 
-#: tellybox/web/admin/templates/library.html:63
+#: tellybox/web/admin/templates/library.html:81
 #, python-format
 msgid "I understand \"%(source)s\" will be deleted after merging"
 msgstr "Mir ist klar, dass „%(source)s“ nach dem Zusammenführen gelöscht wird"
 
-#: tellybox/web/admin/templates/library.html:65
+#: tellybox/web/admin/templates/library.html:83
 msgid "Merge"
 msgstr "Zusammenführen"
 
-#: tellybox/web/admin/templates/library.html:72
-msgid "Title"
-msgstr "Titel"
-
-#: tellybox/web/admin/templates/library.html:84
+#: tellybox/web/admin/templates/library.html:102
 msgid "Publish"
 msgstr "Freigeben"
 
-#: tellybox/web/admin/templates/library.html:94
+#: tellybox/web/admin/templates/library.html:112
 msgid "Held downloads"
 msgstr "Warten auf Freigabe"
 
-#: tellybox/web/admin/templates/library.html:101
+#: tellybox/web/admin/templates/library.html:119
 #, python-format
 msgid "%(ready)s of %(total)s ready"
 msgstr "%(ready)s von %(total)s bereit"
 
-#: tellybox/web/admin/templates/library.html:104
+#: tellybox/web/admin/templates/library.html:122
 msgid "Publish all ready"
 msgstr "Alles Bereite freigeben"
 
-#: tellybox/web/admin/templates/library.html:115
+#: tellybox/web/admin/templates/library.html:133
 msgid "Single videos"
 msgstr "Einzelne Videos"
 
-#: tellybox/web/admin/templates/library.html:120
+#: tellybox/web/admin/templates/library.html:138
 msgid "Nothing held."
 msgstr "Nichts wartet auf Freigabe."
 
@@ -1656,6 +1866,97 @@ msgstr "Zum Bestätigen „%(word)s“ eingeben"
 #: tellybox/web/admin/templates/show.html:181
 msgid "Delete episode and its files"
 msgstr "Folge samt Dateien löschen"
+
+#: tellybox/web/admin/templates/split.html:12
+msgid "The split editor needs JavaScript."
+msgstr "Der Schnitt-Editor braucht JavaScript."
+
+#: tellybox/web/admin/templates/split.html:20
+msgid "Cutting…"
+msgstr "Wird geschnitten…"
+
+#: tellybox/web/admin/templates/split.html:21
+msgid "The video is cut into parts in the background. You can leave this page."
+msgstr "Das Video wird im Hintergrund in Teile geschnitten. Du kannst diese Seite verlassen."
+
+#: tellybox/web/admin/templates/split.html:26
+msgid "Splitting failed"
+msgstr "Aufteilen fehlgeschlagen"
+
+#: tellybox/web/admin/templates/split.html:28
+msgid "The existing episodes are unchanged. Check the plan and approve it again."
+msgstr "Die vorhandenen Folgen sind unverändert. Prüfe den Plan und gib ihn erneut frei."
+
+#: tellybox/web/admin/templates/split.html:32
+#, python-format
+msgid "Split into %(num)d episode"
+msgid_plural "Split into %(num)d episodes"
+msgstr[0] "In %(num)d Folge aufgeteilt"
+msgstr[1] "In %(num)d Folgen aufgeteilt"
+
+#: tellybox/web/admin/templates/split.html:36
+msgid "Change the plan below to split it again."
+msgstr "Ändere den Plan unten, um es erneut aufzuteilen."
+
+#: tellybox/web/admin/templates/split.html:45
+msgid "−10 s"
+msgstr "−10 s"
+
+#: tellybox/web/admin/templates/split.html:46
+msgid "−1 s"
+msgstr "−1 s"
+
+#: tellybox/web/admin/templates/split.html:47
+msgid "Previous frame"
+msgstr "Vorheriges Bild"
+
+#: tellybox/web/admin/templates/split.html:47
+msgid "◀ frame"
+msgstr "◀ Bild"
+
+#: tellybox/web/admin/templates/split.html:49
+msgid "Next frame"
+msgstr "Nächstes Bild"
+
+#: tellybox/web/admin/templates/split.html:49
+msgid "frame ▶"
+msgstr "Bild ▶"
+
+#: tellybox/web/admin/templates/split.html:50
+msgid "+1 s"
+msgstr "+1 s"
+
+#: tellybox/web/admin/templates/split.html:51
+msgid "+10 s"
+msgstr "+10 s"
+
+#: tellybox/web/admin/templates/split.html:54
+msgid "Cut here"
+msgstr "Hier schneiden"
+
+#: tellybox/web/admin/templates/split.html:56
+msgid "Use chapters"
+msgstr "Kapitel verwenden"
+
+#: tellybox/web/admin/templates/split.html:62
+msgid "Parts"
+msgstr "Teile"
+
+#: tellybox/web/admin/templates/split.html:76
+msgid "Delete the original video after cutting (it can't be split again)"
+msgstr "Originalvideo nach dem Schneiden löschen (es kann dann nicht erneut aufgeteilt werden)"
+
+#: tellybox/web/admin/templates/split.html:79
+msgid "Approve and cut"
+msgstr "Freigeben und schneiden"
+
+#: tellybox/web/admin/templates/split.html:83
+msgid "Throw away this split plan?"
+msgstr "Diesen Schnittplan verwerfen?"
+
+#: tellybox/web/admin/templates/split.html:84
+msgid "Discard plan"
+msgstr "Plan verwerfen"
 
 #~ msgid "%(h)d h %(m)02d min"
 #~ msgstr ""

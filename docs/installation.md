@@ -3,6 +3,7 @@
 This guide takes you from an empty server to kids picking videos on the TV. Setup takes 15 to 30 minutes. Then it covers HTTPS, remote access, backups, updates and troubleshooting.
 
 - [What you need](#what-you-need)
+- [Quick install script](#quick-install-script)
 - [1. Download the two files](#1-download-the-two-files)
 - [2. Edit the settings](#2-edit-the-settings)
 - [3. Start it](#3-start-it)
@@ -29,6 +30,32 @@ This guide takes you from an empty server to kids picking videos on the TV. Setu
 | **Ports** | One TCP port for the web app (8080 by default), reachable from your LAN, including the Chromecast. A second port (8081 by default) is used on localhost only. |
 
 > **Docker Desktop on macOS or Windows doesn't work.** Tellybox needs `network_mode: host` for mDNS discovery, and Docker Desktop runs containers in a VM, where host networking can't reach your LAN. Use a Linux host.
+
+## Quick install script
+
+On a Linux host with Docker Engine and the Compose plugin, one line does the setup:
+
+```sh
+curl -fsSL https://github.com/sandermvanvliet/Tellybox/releases/latest/download/install.sh | sh
+```
+
+The script:
+
+1. Checks for Linux, Docker and the Compose plugin, and refuses Docker Desktop.
+2. Asks for the folder (default `/opt/tellybox`), the time zone and the web port. It uses `sudo` only if the folder isn't writable.
+3. Downloads the release's `docker-compose.yml` and `.env`, and fills in the time zone and port.
+4. Starts Tellybox with `docker compose up -d` and waits until it answers.
+5. Prints the admin setup address and code, and the address for the kids.
+
+Run it again on an existing folder to upgrade. It keeps your `.env`, offers to refresh `docker-compose.yml`, and pulls the new image.
+
+To skip the questions, pass `--yes` and set what you want in variables: `TELLYBOX_DIR`, `TZ`, `TELLYBOX_WEB_PORT`, and `TELLYBOX_VERSION` for a specific release such as `v0.1.0`:
+
+```sh
+curl -fsSL https://github.com/sandermvanvliet/Tellybox/releases/latest/download/install.sh | TELLYBOX_DIR=$HOME/tellybox TZ=Europe/Amsterdam sh -s -- --yes
+```
+
+Steps 1 to 3 below do the same by hand.
 
 ## 1. Download the two files
 

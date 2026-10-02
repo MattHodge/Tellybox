@@ -28,7 +28,7 @@ export function statusText(npState) {
 // Today's time left as text, from the sky the device shows (the group's, reduced).
 export function timeLeftText(sky, timeUp) {
   if (timeUp) return tr("Time's up for today");
-  if (!sky || sky.unlimited) return tr("No time limit today");
+  if (!sky || sky.unlimited) return tr("No time limit");
   const pct = Math.round(Math.max(0, Math.min(1, sky.fraction_left ?? 1)) * 100);
   return tr("%(pct)s% of today's time left", { pct });
 }

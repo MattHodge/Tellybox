@@ -79,7 +79,7 @@ assert.equal(matchesQuery("Café Kids", "cafe"), true);
 assert.equal(matchesQuery("Bluey", "xyz"), false);
 assert.equal(matchesQuery("Bluey", "  "), true);
 assert.equal(timeLeftText({{fraction_left: 0.5}}, false), "50% of today's time left");
-assert.equal(timeLeftText({{unlimited: true}}, false), "No time limit today");
+assert.equal(timeLeftText({{unlimited: true}}, false), "No time limit");
 assert.equal(timeLeftText({{fraction_left: 0.5}}, true), "Time's up for today");
 """,
         encoding="utf-8",

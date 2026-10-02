@@ -91,6 +91,41 @@ def test_migration_012_marks_an_existing_password_as_env(tmp_path):  # DP-4
     assert tuple(row) == ("x", "env", None)
 
 
+def test_migration_014_existing_rows_become_custom(tmp_path):  # A-23
+    """Existing profiles keep their current behavior (custom limits) after migration."""
+    conn = db.connect(tmp_path / "t.db")
+    for version, _name, sql in db.migrations():
+        if version <= 13:
+            for statement in db._split_sql(sql):
+                conn.execute(statement)
+            conn.execute(f"PRAGMA user_version = {version}")
+    assert db.migrate(conn) == db.migrations()[-1][0] >= 14
+
+    # Existing household profile should have custom limits
+    row = conn.execute("SELECT allowance_mode, max_session_mode FROM profile WHERE id = 1").fetchone()
+    assert tuple(row) == ("custom", "custom")
+
+    # Settings should have the new default columns
+    row = conn.execute("SELECT default_allowance_min, default_max_session_min FROM settings WHERE id = 1").fetchone()
+    assert tuple(row) == (60, 90)
+
+
+def test_migration_014_new_rows_default_to_inherit(tmp_path):  # A-23
+    """New profiles default to inherit limits after migration."""
+    conn = db.open_db(tmp_path / "t.db")
+
+    # Insert a new profile after migration
+    import datetime
+    now = datetime.datetime.now(datetime.UTC).isoformat(timespec="milliseconds")
+    conn.execute(
+        "INSERT INTO profile (name, created_at) VALUES (?, ?)",
+        ("Child", now),
+    )
+
+    row = conn.execute("SELECT allowance_mode, max_session_mode FROM profile WHERE name = 'Child'").fetchone()
+    assert tuple(row) == ("inherit", "inherit")
+
+
 def test_migration_013_profile_defaults(tmp_path):  # KA-11, PB-6
     conn = db.open_db(tmp_path / "t.db")
     row = conn.execute("SELECT ui_mode, cast_device_uuid FROM profile").fetchone()

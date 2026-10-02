@@ -17,6 +17,7 @@ Tellybox is a small self-hosted app that replaces all of that:
 - **Kids pick without reading.** They tap their own picture on a "who's watching?" screen, then pick from big thumbnails and show artwork on any phone, tablet or laptop. One tap starts the episode on the TV.
 - **The TV only plays your files.** Tellybox casts plain MP4 files from your server to a Chromecast. The YouTube app is never involved, so there are no ads, no recommendations and no "up next" you didn't choose.
 - **No sponsor reads.** Sponsor segments, self-promotion and "like and subscribe" reminders are cut out of each video when it downloads, using [SponsorBlock](https://sponsor.ajay.app/).
+- **Long compilations become episodes.** A two-hour "best of" video turns into separate episodes, each with its own thumbnail and title. Tellybox finds the cuts from the video's chapters or from the show's title card, and you check them before anything is cut.
 - **The day's time runs out gently.** Each kid has their own daily allowance, and the sky in the kid app is the timer: the sun sinks as the allowance runs down, and it's night when time is up. The current episode gets to finish, then the TV stops. With the optional Tellybox receiver, the TV shows the same sky in a corner and says goodnight when time is up. You can add time, give an unlimited day, or stop the TV from your phone, wherever you are.
 - **It fits in your smart home.** A [Home Assistant integration](https://github.com/sandermvanvliet/ha-tellybox) shows what's on and each kid's time left, and puts the parent controls on your dashboards and automations.
 - **It stays at home.** It runs in Docker on your own server and is reachable only on your network (and your Tailscale tailnet). There are no accounts, no cloud and no telemetry.
@@ -68,7 +69,7 @@ Out of the box, episodes play through the Chromecast's standard Default Media Re
 - **Up next:** before autoplay continues, a card with the next episode's thumbnail.
 - **Goodnight:** when time is up and the last episode has finished, a calm night scene. After 10 minutes the Chromecast goes back to its backdrop and the TV can sleep.
 
-If the Tellybox receiver can't start, the same episode plays on the Default Media Receiver instead, and the dashboard says so. Turning it on takes one app ID in Settings; see the [installation guide](docs/installation.md#tellybox-receiver-optional).
+If the Tellybox receiver doesn't start, Tellybox tries once more before it falls back. Then the same episode plays on the Default Media Receiver, and Tellybox tries its own receiver again at the next episode. If the receiver disappears in the middle of an episode, it's started again at the same spot. Each problem is logged, and the dashboard shows the last one. Turning the receiver on takes one app ID in Settings; see the [installation guide](docs/installation.md#tellybox-receiver-optional).
 
 ## What you see
 
@@ -85,6 +86,17 @@ If the Tellybox receiver can't start, the same episode plays on the Default Medi
   </tr>
 </table>
 
+<table>
+  <tr>
+    <td width="33%"><img src="docs/images/admin-split-phone.png" alt="Splitting a compilation on a phone: the player on a title card, then the parts with their titles"></td>
+    <td width="67%"><img src="docs/images/admin-split-desktop.png" alt="Splitting on a laptop: the player, the marked title card and a strip of the title card at each cut, with the parts and their titles beside it"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Split a compilation</b><br>Found cuts, titles read from the title cards</td>
+    <td align="center"><b>Review the cuts</b><br>The title card at every cut, how sure each one is, the channel intro left out</td>
+  </tr>
+</table>
+
 The admin pages are designed for a phone first and sit behind a password. They speak English, Dutch or German, whichever the browser prefers, so each parent gets their own language without a setting.
 
 - **Dashboard:** what's on the TV right now and how much time is used and left. It has buttons for **+15 min**, **+30 min**, **Unlimited today**, **Block today** and **Stop now**, plus the download queue.
@@ -97,6 +109,11 @@ The admin pages are designed for a phone first and sit behind a password. They s
   - Videos are grouped into a show per YouTube channel. Shows can be renamed and merged; episodes can be renamed, reordered and moved between shows.
   - Artwork can be set from an upload or a frame of the video. Anything can be hidden without deleting it.
   - Disk use is shown per show.
+- **Splitting:** turn a compilation into episodes.
+  - Mark cuts in a player that steps by second or by frame, or start from the video's chapters. Name each part, and leave out what you don't want, such as a channel intro.
+  - Or mark the show's title card once, and **Find cuts** proposes every cut, with the episode titles read from the cards. Each cut says how sure it is, and you can still move, add or remove cuts.
+  - **Approve and cut** makes each part its own episode, in the original's place in the show. You choose whether to keep the original video so you can split it again.
+  - A show can find the episodes in new long videos automatically. Those stay hidden from the kids until you've approved the split.
 - **SponsorBlock:** which kinds of segments are cut, set once for everything and changeable per show. Each episode's page lists the segments that were removed and the time saved, and can download the video again with or without them.
 - **Profiles:** a profile per kid with a name and a picture (one of the built-in avatars or a photo), each with their own allowance, continue watching and history.
 - **Integrations:** API tokens for [Home Assistant](#home-assistant) and similar tools, read-only or with parent controls, revocable at any time.
@@ -141,7 +158,7 @@ flowchart LR
   sb[SponsorBlock] -- segments --> worker
   subgraph server[Your home server · Docker Compose]
     web[web<br/>pages, live updates,<br/>signed MP4 URLs]
-    worker[worker<br/>downloads, encodes,<br/>yt-dlp updates, backups]
+    worker[worker<br/>downloads, encodes, splits,<br/>yt-dlp updates, backups]
     cast[cast<br/>Chromecast session,<br/>timer, autoplay]
     store[(SQLite + media)]
     web --> cast
@@ -160,13 +177,17 @@ flowchart LR
 - **SponsorBlock:** yt-dlp cuts the chosen segments out of the file during the download. It cuts on keyframes without re-encoding, so it adds almost no time. The lookup sends only a short hash prefix of the video id.
   - SponsorBlock's data is crowd-sourced and grows after a video comes out, so Tellybox checks each new video again every night for 7 days. If new segments appear, it replaces the file and moves saved positions so "continue watching" resumes at the same moment.
   - If SponsorBlock can't be reached, the video downloads uncut rather than not at all.
+- **Splitting:** each part is re-encoded on its own, so it starts and ends on the exact frame.
+  - Finding cuts samples two frames a second and compares the marked part of the title card by its [dHash](https://www.hackerfactor.com/blog/index.php?/archives/529-Kind-of-Like-That.html) fingerprint. The episode length you give helps it drop false matches and look again where a card was missed.
+  - Each cut moves back to the black or the scene change just before the card, found with ffmpeg. [Tesseract](https://github.com/tesseract-ocr/tesseract) reads the title.
+  - A 30-minute 720p video takes about 80 seconds on the CPU.
 - **Casting:** the Chromecast plays the files straight from your server, through the Tellybox receiver or the standard Default Media Receiver. Both work on the original 2013 Chromecast; a tap typically reaches the TV in about 4 seconds, and under a second when the receiver is already running.
 - **The Tellybox receiver:** a static HTML page on the Cast Application Framework, hosted on GitHub Pages (or your own HTTPS host). The cast service sends it the timer state over a custom Cast channel. The page holds no household data, and the videos and images still come from your server over the LAN.
 - **Media links:** the links given to the Chromecast are HMAC-signed and expire after 24 hours, because a Chromecast can't log in.
 - **Timer:** one service owns the Chromecast connection and the timer. It pushes every state change to all open pages, and to Home Assistant, over Server-Sent Events.
 - **Storage:** everything lives in one SQLite file plus a media folder, so a backup is a single file. A built-in `tellybox backup` command makes a consistent copy while everything keeps running.
 
-**Stack:** Python 3.12, FastAPI, pychromecast, yt-dlp, ffmpeg and SQLite. The frontend and the TV receiver are vanilla JavaScript and CSS with no build step, and the admin pages are server-rendered Jinja templates.
+**Stack:** Python 3.12, FastAPI, pychromecast, yt-dlp, ffmpeg and SQLite, plus OpenCV and Tesseract for splitting. The frontend and the TV receiver are vanilla JavaScript and CSS with no build step, and the admin pages are server-rendered Jinja templates.
 
 ## Get started
 
@@ -203,8 +224,9 @@ Tellybox is used daily by one family. What's done and what's next:
 - [x] **Home Assistant:** an admin API with tokens, and the [ha-tellybox](https://github.com/sandermvanvliet/ha-tellybox) integration
 - [x] **No sponsor segments:** sponsor parts, self-promotion and "like and subscribe" reminders are cut out of the file at download, using [SponsorBlock](https://github.com/ajayyy/SponsorBlock)
 - [x] **Tellybox on the TV itself:** its own Cast receiver shows the sinking sun in a corner, a goodnight screen when time is up, show artwork while loading, and an up-next card. The standard receiver stays as a fallback.
+- [x] **Episode splitting:** cut long compilation videos into single episodes, by hand, from YouTube chapters, or found automatically from the show's title card
+- [x] **A sturdier TV receiver:** it retries before falling back, comes back at the next episode, recovers mid-episode, and logs every problem
 - [ ] **Channel subscriptions:** new uploads from a channel land in an approval inbox
-- [ ] **Episode splitting:** cut long compilation videos into single episodes. It starts with manual cut points and YouTube chapters, and later comes automatic title-card detection.
 
 The full product requirements are in [docs/PRD.md](docs/PRD.md), and the build log is in [docs/PROGRESS.md](docs/PROGRESS.md).
 
@@ -212,7 +234,7 @@ The full product requirements are in [docs/PRD.md](docs/PRD.md), and the build l
 
 ```sh
 python3.12 -m venv .venv && .venv/bin/pip install -e '.[dev]'
-.venv/bin/pytest -q                                          # ~1200 tests, no network or Chromecast needed
+.venv/bin/pytest -q                                          # ~1400 tests, no network or Chromecast needed
 .venv/bin/python scripts/kid_mock_server.py --port 8099      # the kid app against a mock API, every state scriptable
 ```
 

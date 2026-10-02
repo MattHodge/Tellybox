@@ -23,8 +23,8 @@ This guide takes you from an empty server to kids picking videos on the TV. Setu
 
 | | |
 | --- | --- |
-| **Server** | A Linux machine that stays on, with Docker Engine and the Compose plugin (a home server, NAS or mini PC). Tellybox is developed on Ubuntu and Fedora. No GPU is needed. |
-| **Chromecast** | Any Chromecast or Google TV that plays through the standard Cast "Default Media Receiver". Even the original 2013 Chromecast works. The optional [Tellybox receiver](#tellybox-receiver-optional) also runs on the original, but needs a one-time Google Cast developer registration. |
+| **Server** | A Linux machine that stays on, with Docker Engine and the Compose plugin (a home server, NAS, mini PC or Raspberry Pi). The image is built for amd64 and arm64. Tellybox is developed on Ubuntu and Fedora. No GPU is needed. |
+| **Chromecast** | Any Chromecast or Google TV that plays through the standard Cast "Default Media Receiver". Even the original 2013 Chromecast works. The optional [Tellybox receiver](#tellybox-receiver-optional) also runs on the original, with nothing to register. |
 | **Network** | The server and the Chromecast on the **same LAN segment**. Tellybox finds the Chromecast with mDNS, and the Chromecast downloads the video straight from the server. |
 | **Internet** | Outbound only: the server fetches videos from YouTube and segment data from the SponsorBlock API. With the Tellybox receiver, the Chromecast also loads the receiver page from GitHub Pages. Nothing comes in from the internet. |
 | **Disk** | About 0.5 to 1 GB per hour of video (720p H.264). |

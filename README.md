@@ -156,7 +156,7 @@ flowchart LR
   ha[Home Assistant<br/>ha-tellybox] -- admin API --> web
   yt[YouTube] -- yt-dlp --> worker
   sb[SponsorBlock] -- segments --> worker
-  subgraph server[Your home server · Docker Compose]
+  subgraph server[Your home server · one Docker container]
     web[web<br/>pages, live updates,<br/>signed MP4 URLs]
     worker[worker<br/>downloads, encodes, splits,<br/>yt-dlp updates, backups]
     cast[cast<br/>Chromecast session,<br/>timer, autoplay]
@@ -185,6 +185,7 @@ flowchart LR
 - **The Tellybox receiver:** a static HTML page on the Cast Application Framework, hosted on GitHub Pages (or your own HTTPS host). The cast service sends it the timer state over a custom Cast channel. The page holds no household data, and the videos and images still come from your server over the LAN.
 - **Media links:** the links given to the Chromecast are HMAC-signed and expire after 24 hours, because a Chromecast can't log in.
 - **Timer:** one service owns the Chromecast connection and the timer. It pushes every state change to all open pages, and to Home Assistant, over Server-Sent Events.
+- **One container:** the web app, the cast service and the worker run in one container, which starts them, passes on signals and restarts as a whole if one of them stops. It starts as root only to take ownership of its folders, then drops to an ordinary user. They can also run as three separate containers.
 - **Storage:** everything lives in one SQLite file plus a media folder, so a backup is a single file. A built-in `tellybox backup` command makes a consistent copy while everything keeps running.
 
 **Stack:** Python 3.12, FastAPI, pychromecast, yt-dlp, ffmpeg and SQLite, plus OpenCV and Tesseract for splitting. The frontend and the TV receiver are vanilla JavaScript and CSS with no build step, and the admin pages are server-rendered Jinja templates.
@@ -192,17 +193,17 @@ flowchart LR
 ## Get started
 
 You need:
-- a Linux machine with Docker that stays on (a home server, NAS or mini PC);
+- a Linux machine with Docker Engine and the Compose plugin that stays on (a home server, NAS, mini PC or Raspberry Pi; the image is built for amd64 and arm64);
 - a Chromecast on the same network;
 - about 0.5 to 1 GB of disk per hour of video.
 
-The **[installation and deployment guide](docs/installation.md)** walks through the setup:
-- the compose file, the settings and the first-run admin password;
-- first-run setup and HTTPS behind a reverse proxy;
-- remote access over Tailscale;
-- backups, updates and troubleshooting.
+On a Linux host, one line installs it. The script asks for a folder, your time zone and a port, starts Tellybox, and prints the address and a one-time setup code for choosing the admin password:
 
-The short version:
+```sh
+curl -fsSL https://github.com/sandermvanvliet/Tellybox/releases/latest/download/install.sh | sh
+```
+
+Or do the same by hand with the two release files:
 
 ```sh
 mkdir -p /opt/tellybox && cd /opt/tellybox
@@ -214,6 +215,14 @@ docker compose logs tellybox | grep "setup code"
 # open http://<server-ip>:8080/admin/setup with that code to choose a password,
 # and http://<server-ip>:8080 for the kids
 ```
+
+There are also ready-made setups for a [Home Assistant add-on](https://github.com/sandermvanvliet/tellybox-ha-addon), Unraid, TrueNAS SCALE, CasaOS and Synology. Docker Desktop on macOS or Windows doesn't work, because Tellybox needs host networking to find the Chromecast.
+
+The **[installation and deployment guide](docs/installation.md)** covers the rest:
+- the install script, the manual setup and the other platforms;
+- first-run setup, the settings and the Tellybox receiver;
+- HTTPS behind a reverse proxy, and remote access over Tailscale;
+- backups, updates, pinning a version, and troubleshooting.
 
 ## Roadmap
 
@@ -229,6 +238,7 @@ Tellybox is used daily by one family. What's done and what's next:
 - [x] **Tellybox on the TV itself:** its own Cast receiver shows the sinking sun in a corner, a goodnight screen when time is up, show artwork while loading, and an up-next card. The standard receiver stays as a fallback.
 - [x] **Episode splitting:** cut long compilation videos into single episodes, by hand, from YouTube chapters, or found automatically from the show's title card
 - [x] **A sturdier TV receiver:** it retries before falling back, comes back at the next episode, recovers mid-episode, and logs every problem
+- [x] **Easier installation:** versioned releases for amd64 and arm64, one container, the admin password chosen in the browser, a one-line install script, and setups for Home Assistant, Unraid, TrueNAS, CasaOS and Synology
 - [ ] **Channel subscriptions:** new uploads from a channel land in an approval inbox
 
 The full product requirements are in [docs/PRD.md](docs/PRD.md), and the build log is in [docs/PROGRESS.md](docs/PROGRESS.md).
@@ -237,7 +247,7 @@ The full product requirements are in [docs/PRD.md](docs/PRD.md), and the build l
 
 ```sh
 python3.12 -m venv .venv && .venv/bin/pip install -e '.[dev]'
-.venv/bin/pytest -q                                          # ~1400 tests, no network or Chromecast needed
+.venv/bin/pytest -q                                          # ~1450 tests, no network or Chromecast needed
 .venv/bin/python scripts/kid_mock_server.py --port 8099      # the kid app against a mock API, every state scriptable
 ```
 

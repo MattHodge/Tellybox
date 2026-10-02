@@ -176,9 +176,10 @@ Plan `docs/plans/step15-installation.md`, approved 2026-10-02. One PR per part, 
   - The add-on itself lives in `sandermvanvliet/tellybox-ha-addon` (image `ghcr.io/sandermvanvliet/tellybox`, version `0.1.0`, host network, `init: false`, data in `/data/tellybox`, media in `/media/tellybox`).
 - **G. Platform templates (DP-8), #25:** `deploy/platforms/` for Unraid, TrueNAS SCALE (Install via YAML), CasaOS and Umbrel; Synology in the guide. Checked against each platform's docs, not installed.
 - 1442 tests.
+- The add-on repository `sandermvanvliet/tellybox-ha-addon` is published (2026-10-02).
+- README and installation guide updated for step 15 (2026-10-02).
 - **v0.1.0** tagged on 2026-10-02 (145eeeb): the first release. CI run green (test, multi-arch build, release); `0.1.0`, `0.1` and `latest` carry linux/amd64 and linux/arm64, and the release has `docker-compose.yml`, `env.example` and `install.sh`.
 - **Open (owner):**
-  - Publish the add-on repository (`gh repo create sandermvanvliet/tellybox-ha-addon --public --source . --push` from `~/Projects/tellybox-ha-addon`).
   - Real HA OS checks: the multi-arch pull without `{arch}`, the setup code in the Log tab, the Web UI button (`[PORT:8080]` with host networking), `TZ` inside the container, the Chromecast found and playing.
   - A clean install from the release on a Linux host (`install.sh`, or the two files), then the usual real-device checks.
   - External catalog submissions: Unraid CA, CasaOS AppStore, Umbrel apps (after a release with pinned digests).

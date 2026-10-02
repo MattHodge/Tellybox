@@ -153,12 +153,35 @@ Steps 9 and 13 are done. What's open is on the owner's side:
 2. **Step 8, kid profiles (v2):** the playback checks on the real TV, in `docs/plans/step8-device-checks.md`.
 3. **PR #10** (installation guide: reboot the Chromecast after changing the receiver app) is open.
 
-On 2026-10-01 the owner chose to build splitting next (steps 12 and 14), ahead of 11, channel subscriptions (v4). Step 12 is done, and step 14 is deployed with its v6 gate open. On 2026-10-02 the owner added step 15, easier installation (DP-1..DP-8), and put it before 11. **Step 15 is in progress; 11, channel subscriptions (v4), comes after it.**
+On 2026-10-01 the owner chose to build splitting next (steps 12 and 14), ahead of 11, channel subscriptions (v4). Step 12 is done, and step 14 is deployed with its v6 gate open. On 2026-10-02 the owner added step 15, easier installation (DP-1..DP-8), and put it before 11. Step 15 is built and released as v0.1.0; its device checks are open. **The next step to build is 11, channel subscriptions (v4).**
 
-### 15. Easier installation, in progress
-Plan `docs/plans/step15-installation.md`, approved 2026-10-02. One PR per part:
-- **A. Versioned, multi-arch image (DP-1):** v* tags build amd64 + arm64 as `X.Y.Z`, `X.Y` and `latest`, and create the GitHub release with the install files. main builds amd64 only, as `edge` (and `sha-…`), and is the only thing deployed. Owner action: point the deploy flow's image at `:edge` before merging, or production stays on the last release.
-- B. Root entrypoint, PUID/PGID, healthcheck (DP-3). C. First-run password with a setup code (DP-4). D. Single container and release compose (DP-5, DP-2), then cut `v0.1.0`. E. Install script (DP-6). F. Home Assistant add-on (DP-7). G. Platform templates (DP-8).
+### 15. Easier installation, built; release and device checks open
+Plan `docs/plans/step15-installation.md`, approved 2026-10-02. One PR per part, each built by a Sonnet subagent in a worktree and reviewed by the controller. All merged on 2026-10-02.
+- **A. Versioned, multi-arch image (DP-1), #20:**
+  - v* tags build amd64 + arm64 as `X.Y.Z`, `X.Y` and `latest`, and create the GitHub release with `docker-compose.yml`, `env.example` and `install.sh`.
+  - main builds amd64 only, as `edge` (and `sha-…`), and is the only thing deployed. The owner's deploy flow follows `:edge`.
+- **B. Root entrypoint (DP-3), #22:**
+  - `python -m tellybox.entrypoint` chowns `/data`, `/media` and `/backups` when their top-level owner differs from `PUID`/`PGID` (default 1500), then drops root.
+  - The `tellybox` CLI drops root too, so `exec … tellybox backup` writes service-owned files.
+  - Image `HEALTHCHECK` (`tellybox.healthcheck`): reads PID 1's command; web or all-in-one → `/healthz`, cast → `/state`, worker → healthy.
+- **C. First-run password (DP-4), #21:**
+  - Without a configured password, the web service logs a one-time setup code; `/admin/setup` takes it plus a new password. Migration 012 records where the hash came from (`env` or `ui`); the environment always wins.
+  - `tellybox reset-password` clears a browser-set password and prints a new code. The token API (A-16) is unaffected.
+- **D. Single container (DP-5) and release compose (DP-2), #24:**
+  - `python -m tellybox` supervises web, cast and worker: signals fan out, and one child dying restarts the container. The image's default command.
+  - `deploy/docker-compose.yml` + `deploy/.env.example`; the install guide is rewritten around them, with the three-service file under "Advanced: separate services".
+- **E. Install script (DP-6), #23:** `deploy/install.sh` (POSIX sh, `curl … | sh`): checks Docker, asks folder/TZ/port, downloads the release files, starts it and prints the setup code; upgrades an existing folder. shellcheck in CI.
+- **F. Home Assistant add-on (DP-7), #26:**
+  - The entrypoint maps `/data/options.json` (via `TELLYBOX_OPTIONS_FILE`) to env vars and creates missing data/media folders.
+  - The add-on itself lives in `sandermvanvliet/tellybox-ha-addon` (image `ghcr.io/sandermvanvliet/tellybox`, version `0.1.0`, host network, `init: false`, data in `/data/tellybox`, media in `/media/tellybox`).
+- **G. Platform templates (DP-8), #25:** `deploy/platforms/` for Unraid, TrueNAS SCALE (Install via YAML), CasaOS and Umbrel; Synology in the guide. Checked against each platform's docs, not installed.
+- 1442 tests.
+- **v0.1.0** tagged on 2026-10-02 (145eeeb): the first release. CI run green (test, multi-arch build, release); `0.1.0`, `0.1` and `latest` carry linux/amd64 and linux/arm64, and the release has `docker-compose.yml`, `env.example` and `install.sh`.
+- **Open (owner):**
+  - Publish the add-on repository (`gh repo create sandermvanvliet/tellybox-ha-addon --public --source . --push` from `~/Projects/tellybox-ha-addon`).
+  - Real HA OS checks: the multi-arch pull without `{arch}`, the setup code in the Log tab, the Web UI button (`[PORT:8080]` with host networking), `TZ` inside the container, the Chromecast found and playing.
+  - A clean install from the release on a Linux host (`install.sh`, or the two files), then the usual real-device checks.
+  - External catalog submissions: Unraid CA, CasaOS AppStore, Umbrel apps (after a release with pinned digests).
 
 ### 12. Manual splitting (v5), done
 Plan `docs/plans/step12-14-splitting.md` (steps 12 and 14), approved 2026-10-01. Subagent briefs: `docs/plans/step12-handoff.md`. Branch `step12/manual-split`.
@@ -444,7 +467,7 @@ Moved ahead of SponsorBlock, subscriptions and splitting by the owner on 2026-09
   - No lint was run (ruff isn't in the venv).
 
 ### Then
-15. Easier installation (in progress) · 11. Channel subscriptions (v4) · 12. Manual splitting (v5) · 14. Smart splitting (v6).
+11. Channel subscriptions (v4) · 12. Manual splitting (v5) · 14. Smart splitting (v6).
 
 ## Open decisions / follow-ups
 

@@ -356,7 +356,7 @@ function init() {
     return row;
   }
 
-  // ES-7: the frame at the start of every part, to find the cuts by eye.
+  // ES-7: a frame at the start of every part, to check the cuts by eye.
   const frameTimers = new Map();
 
   function frameSrc(time) {
@@ -378,16 +378,17 @@ function init() {
       card.querySelector(".card-n").textContent = String(i + 1);
       fillDetect(card.querySelector(".card-detect"), i > 0 ? P.detectedAt(detected, s.start_s) : null);
       const img = card.querySelector("img");
-      if (Number(card.dataset.t) !== s.start_s) {
-        card.dataset.t = s.start_s;
+      const at = P.stripFrameTime(detected, s, i);
+      if (Number(card.dataset.t) !== at) {
+        card.dataset.t = at;
         clearTimeout(frameTimers.get(card));
-        frameTimers.set(card, setTimeout(() => (img.src = frameSrc(s.start_s)), FRAME_DELAY_MS));
+        frameTimers.set(card, setTimeout(() => (img.src = frameSrc(at)), FRAME_DELAY_MS));
       }
     });
   }
 
   function makeCard(i, s) {
-    const img = el("img", { class: "thumb", alt: "", loading: "lazy", src: frameSrc(s.start_s) });
+    const img = el("img", { class: "thumb", alt: "", loading: "lazy", src: frameSrc(P.stripFrameTime(detected, s, i)) });
     const card = el(
       "button",
       { type: "button", class: "strip-card", onclick: (event) => seek(plan[Number(event.currentTarget.dataset.i)].start_s) },

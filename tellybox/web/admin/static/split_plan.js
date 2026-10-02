@@ -110,6 +110,13 @@ export function detectedAt(detected, t) {
   return (detected || []).find((d) => Math.abs(d.at_s - t) <= 0.05) || null;
 }
 
+// ES-7: the time of a part's strip frame. A detected cut snaps to the black before the title card
+// (ES-6), so its exact start frame is black; show the title card instead. Other cuts: the start frame.
+export function stripFrameTime(detected, segment, index) {
+  const hit = index > 0 ? detectedAt(detected, segment.start_s) : null;
+  return hit && hit.title_hit_s > segment.start_s ? hit.title_hit_s + 0.5 : segment.start_s;
+}
+
 // "sure", "check" or "unsure" for a confidence (0..1).
 export function confidenceLevel(confidence) {
   return confidence >= 0.75 ? "sure" : confidence >= 0.4 ? "check" : "unsure";

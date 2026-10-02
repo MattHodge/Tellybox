@@ -200,3 +200,16 @@ def test_benchmark_thirty_minute_compilation(tmp_path):
     print(f"NF-6 benchmark: {elapsed:.1f} s for 1800 s, {len(cuts)} cuts")
     assert len(cuts) >= 2 * (n - 1)
     assert elapsed < 900
+
+
+@pytest.mark.skipif(not ocr.available() or font_file() is None, reason="needs tesseract and a system font")
+def test_whole_frame_ocr_prefers_the_biggest_line_over_logo_text():
+    import numpy as np
+    from PIL import Image, ImageDraw, ImageFont
+
+    img = Image.new("L", (1280, 720), 60)
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle([50, 40, 420, 170], radius=30, fill=200)
+    d.text((80, 70), "Puddle Hoppers", font=ImageFont.truetype(font_file(), 44), fill=30)  # the show's logo
+    d.text((300, 330), "Rainy Day Race", font=ImageFont.truetype(font_file(), 90), fill=255)  # the episode title
+    assert ocr.read_title(np.asarray(img), None) == "Rainy Day Race"

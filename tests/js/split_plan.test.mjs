@@ -141,3 +141,11 @@ test("indexAt", () => {
   const p = three();
   assert.deepEqual([0, 99.9, 100, 450, 600, 9999].map((t) => plan.indexAt(p, t)), [0, 0, 1, 2, 2, 2]);
 });
+
+test("stripFrameTime shows the title card for a detected cut, else the start frame", () => {
+  const detected = [{ at_s: 41.6, title_hit_s: 42.0 }];
+  assert.equal(plan.stripFrameTime(detected, { start_s: 41.6 }, 1), 42.5); // snapped to black: show the card
+  assert.equal(plan.stripFrameTime(detected, { start_s: 60 }, 2), 60); // a manual cut: its own frame
+  assert.equal(plan.stripFrameTime(detected, { start_s: 0 }, 0), 0); // the first part
+  assert.equal(plan.stripFrameTime(null, { start_s: 41.6 }, 1), 41.6);
+});

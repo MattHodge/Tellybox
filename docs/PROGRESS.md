@@ -359,6 +359,9 @@ Plan: the step 14 part of `docs/plans/step12-14-splitting.md`. Briefs: `docs/pla
   - Leaving out the intro and approving cut four visible parts (42.6, 47.6, 40.6 and 44.6 s: black, card and episode each).
   - Screenshots of the split page at 375 px and the show page at 1280 px were reviewed.
 - **OCR with Tesseract installed** (dev box, 2026-10-01): the matched logo region rarely holds the title, so it read nothing. OCR now reads the whole frame unless a title region is set, and every title on the test cards was read.
+- **Found while making the README screenshots** (2026-10-01, an invented show with Fredoka title cards):
+  - Whole-frame OCR read the logo and scenery too ("u The Big Splash", "7 en Croak"). Without a title region it now takes Tesseract's sparse words, groups them into lines and keeps the line with the tallest confident words. All four titles were then read exactly, and a test covers it.
+  - The review strip showed black frames for detected cuts, because they snap to the black before the card. A detected cut's strip frame is now its title card; manual cuts keep their exact start frame.
 - **Owner's local check** (2026-10-01, a local web service and worker with a stub cast service, `.local-test/`, git-ignored): detection on real videos "working well enough".
 - **Open:**
   - the owner's v6 gate on the deployed version: detection accepted on two real shows;
